@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { act } from 'react'
 import { cleanup, render, screen } from '@testing-library/react'
 import { DialogueBox } from './DialogueBox.js'
 
@@ -18,13 +19,19 @@ describe('DialogueBox', () => {
 
     expect(screen.getByTestId('dialogue-box').textContent).toBe('')
 
-    vi.advanceTimersByTime(20)
+    act(() => {
+      vi.advanceTimersByTime(20)
+    })
     expect(screen.getByTestId('dialogue-box').textContent).toBe('H')
 
-    vi.advanceTimersByTime(20)
+    act(() => {
+      vi.advanceTimersByTime(20)
+    })
     expect(screen.getByTestId('dialogue-box').textContent).toBe('Hi')
 
-    vi.advanceTimersByTime(100)
+    act(() => {
+      vi.advanceTimersByTime(100)
+    })
     expect(screen.getByTestId('dialogue-box').textContent).toBe('Hi')
   })
 

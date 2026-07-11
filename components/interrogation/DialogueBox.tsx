@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { flushSync } from 'react-dom'
 
 export interface DialogueBoxProps {
   text: string
@@ -19,14 +18,12 @@ export function DialogueBox({ text, charactersPerTick = 1, tickMs = 20 }: Dialog
     }
 
     const interval = setInterval(() => {
-      flushSync(() => {
-        setVisibleCount((current) => {
-          const next = Math.min(current + charactersPerTick, text.length)
-          if (next >= text.length) {
-            clearInterval(interval)
-          }
-          return next
-        })
+      setVisibleCount((current) => {
+        const next = Math.min(current + charactersPerTick, text.length)
+        if (next >= text.length) {
+          clearInterval(interval)
+        }
+        return next
       })
     }, tickMs)
 
