@@ -23,7 +23,7 @@ export async function POST(request: Request): Promise<Response> {
     baseUrl: requireEnv('SUPERMEMORY_BASE_URL'),
     apiKey: requireEnv('SUPERMEMORY_API_KEY')
   })
-  const anthropic = new ClaudeClient(requireEnv('ANTHROPIC_API_KEY'))
+  const anthropic = new ClaudeClient()
 
   const result = await handleInterrogateRequest(body, { supermemory, anthropic, suspects })
 

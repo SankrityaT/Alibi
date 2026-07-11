@@ -18,7 +18,7 @@ async function main(): Promise<void> {
     baseUrl: requireEnv('SUPERMEMORY_BASE_URL'),
     apiKey: requireEnv('SUPERMEMORY_API_KEY')
   })
-  const anthropic = new ClaudeClient(requireEnv('ANTHROPIC_API_KEY'))
+  const anthropic = new ClaudeClient()
 
   await seedGroundTruth(
     mara.containerTag,
