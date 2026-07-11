@@ -1,194 +1,286 @@
-# Alibi v2 — Expanded Design Scope (for review)
+# Alibi v2 — Expanded Design Scope (FINAL for review)
 
 Date: 2026-07-11
-Status: DRAFT — awaiting review before any build
+Status: DRAFT — awaiting final review before any build
 Hackathon deadline: 2026-07-13 23:59 PST (~2.5 days out)
 
-This builds on the approved v1 spec (`2026-07-10-alibi-design.md`) and the code
-already shipped (Plans 1-3: memory loop, walkable Phaser station, interrogation
-UI + memory-trace panel, noir visual pass, Claude Agent SDK auth). v2 is about
-**grandness**: making Alibi feel like a real game, leveraging Supermemory Local
-harder, and making the game's dependence on memory *undeniable* rather than
-asserted.
+Builds on the approved v1 spec (`2026-07-10-alibi-design.md`) and shipped code
+(Plans 1-3: memory loop, walkable Phaser station + real character sprite,
+interrogation UI + memory-trace panel, noir visual pass, Claude Agent SDK
+subscription auth). v2 is about **grandness**: a real mystery-movie experience,
+harder Supermemory leverage, and making the game's dependence on memory
+*undeniable*.
+
+The target feel: **Among Us × a Knives Out / noir slow-burn × Supermemory
+Local.** Every suspect looks guilty of *something*; only one is guilty of *this*.
+You keep everyone under suspicion, dig facts from the world, and the picture
+collapses into one answer only after you've dug enough.
+
+---
+
+## 0. Foundational principle: it's an ENGINE, content is generated
+
+**All game content is generated at runtime by our custom engine (Claude +
+Supermemory) — not hand-scripted.** Suspects, the 48-hour timeline, who the
+culprit is, the memory they planted, CCTV clips, phone logs, forensics, financial
+traces, suspect dialogue — all produced by the engine. This makes Alibi a
+reusable, replayable engine (strong "surprise us" hackathon signal), not a canned
+mystery.
+
+**The only hand-authored content is the UI**: labels, room names, button copy,
+static chrome, and the visual design. (That's the part "I" generate.)
+
+### Engine architecture (the hard, important part)
+
+A generated mystery must be *solvable*: the culprit's planted lie must genuinely
+contradict real evidence, the timeline must hold, and the dig must converge to
+exactly one answer. So the engine is three stages, not "generate every turn":
+
+1. **Case generation (once, at new-game).** Claude generates a *structured,
+   validated* case object: suspects (name, motive, secret, real incriminating
+   fact), the ground-truth 48h timeline, the culprit, the false memory the culprit
+   planted (and in whom), and the full evidence set addressable by the
+   investigation verbs (§3). A **validation pass** checks internal consistency and
+   solvability (every contradiction resolves, exactly one culprit is provable).
+2. **Seed.** The structured case is written into Supermemory: ground-truth
+   memories per suspect (isolated by `containerTag`), the false memory into the
+   culprit's container tagged `planted-by-culprit`, and world facts (CCTV, phone,
+   forensics, financial) as retrievable evidence.
+3. **Grounded runtime.** Every suspect answer and investigation result is
+   generated live, grounded **only** in what Supermemory returns for that query.
+   This is what makes memory load-bearing rather than decorative.
+
+**Demo hedge:** keep one **hand-validated fallback case** so the demo recording
+never depends on a generation coin-flip. Engine generates by default; fallback
+guarantees a clean run.
 
 ---
 
 ## 1. The core reframe: the crime IS memory tampering
 
-v1 treated "plant a lie" as only a player tool. v2 makes memory manipulation the
-spine of the whole mystery:
-
 - **The culprit has already tampered with a suspect's memory before the game
-  starts.** At case setup, false "facts" are seeded into one suspect's
-  Supermemory container tagged `planted-by-culprit` — never shown to the player
-  as such. The player must *discover* the tampering the same way they'd catch
-  their own planted lie: by cross-examining, comparing accounts, and noticing
-  which "memory" contradicts physical evidence.
-- **The player can plant lies too** — and doing so is thematically the same act
-  the culprit committed. Watch a lie spread suspect-to-suspect, or get caught.
-- **The ending reveal** isn't just "who did it" — it's "who did it, and what
-  false memory they installed to cover it."
-
-Why this wins: it makes Supermemory the *engine of the mystery itself*, not a
-storage layer under a normal whodunit. This directly serves pillar #3 (prove the
-game couldn't exist without it).
+  starts** — false facts seeded into a suspect's container (`planted-by-culprit`),
+  never labeled as such to the player. The player must *discover* the tampering
+  the way they'd catch their own planted lie: cross-examine, compare accounts,
+  notice which "memory" contradicts physical evidence.
+- **The player can plant lies too** — thematically the same act the culprit
+  committed. Watch a lie spread, or get caught.
+- **The ending** names the culprit *and* the false memory they installed to cover
+  it, generated from the full memory trail.
 
 ---
 
-## 2. Pillar 1 — Conversational, characterful UI
+## 2. Mystery & suspense design (the "keep-you-guessing" engine)
 
-The single biggest thing making v1 feel like a form: each question wipes the last
-answer. Fix that and add texture.
+How the movie feeling is produced mechanically (every beat maps to a Supermemory
+mechanic):
 
-- **Persistent interrogation transcript.** An ongoing back-and-forth log (chat
-  style with suspect portrait + name), not a single question-in/answer-out box
-  that replaces itself. The whole conversation with a suspect stays on screen and
-  scrolls.
-- **Distinct visual voice per suspect.** Portrait, accent color, and dialogue
-  treatment differ per suspect so switching rooms feels like meeting a different
-  person. (Portraits: Phaser/pixel character art, see §6.)
-- **"Present evidence" as a conversational move** (Phoenix-Wright-style): a
-  Present button drops an evidence item into the transcript and the suspect's
-  next line reacts to it live — instead of a separate silent form action.
-- **Suggested-lie affordance** (from v1): an "AI-suggest a lie" button that
-  proposes plausible false claims fitting the current case state; player picks or
-  edits, then it's written as a planted memory.
-
----
-
-## 3. Pillar 2 — Leverage Supermemory Local harder (the "bigger" idea)
-
-Two additions, both real Supermemory work no chat app or Loom/Tana-style tool
-does:
-
-- **Detective's Case Notebook — live cross-suspect memory synthesis.** At any
-  point the player asks the notebook a free-form question ("what do I actually
-  know about the docks?"). This runs a real search over the *detective's own*
-  accumulated memory across every interrogation and every piece of evidence shown
-  so far, and Claude synthesizes an answer with citations back to which
-  suspect/turn each fact came from. This is not a manually-maintained notes list
-  — it's Supermemory doing synthesis across the entire session. Highest-impact
-  "wow" for a memory-infra hackathon.
-- **Lie-contagion / knowledge map.** Since a planted lie can spread between
-  suspects, visualize the spread as a graph (who "knows" a given claim, in what
-  order they came to know it), built from real memory-search history — not
-  scripted. Turns the best mechanic into the best screenshot.
-
-Both reuse the existing `/v4/search`, `/v3/documents`, and `/v4/profile`
-plumbing plus one new detective-scoped container.
+- **Everyone looks guilty at first** → each suspect's memory holds a genuine
+  incriminating fact (real motive, a lie about their whereabouts, a secret). Any
+  suspect you probe surfaces something damning early — served contextually by
+  retrieval, not a fixed script.
+- **Suspicion stays spread** → some "facts" are real memories, some are installed
+  ones (culprit-planted or player-planted), and they are **indistinguishable from
+  the outside**. That indistinguishability is the suspense engine — impossible
+  without a store where false memories persist identically to true ones.
+- **Digging makes it converge** → every fact you surface (testimony + every
+  investigation verb) writes to *your* detective memory. The case board's
+  contradictions are computed live from that growing pile; innocent suspects'
+  stories become consistent with physical evidence, the culprit's stops adding up.
+  The convergence is real search over accumulated memory, not a scripted "aha."
+- **The decision** → you accuse; the ending reads back the specific path you took.
 
 ---
 
-## 4. Pillar 3 — Prove the dependency (the demo kill-shot)
+## 3. Investigation verbs (beyond typed questions)
 
-- **A "Memory: ON/OFF" toggle wired into the demo.** Flip it OFF and suspects
-  instantly stop remembering: ask the follow-up you asked two minutes ago and
-  they have no idea what you mean; a planted lie doesn't stick; contradictions
-  vanish from the case board. Flip it back ON — same suspect, same question — and
-  the whole thing snaps back together. Implementation is trivial: swap the real
-  `SupermemoryClient` for a null client that returns no memories; nothing else
-  changes. This is a ~15-second demo beat that makes "this needs Supermemory"
-  undeniable instead of narrated.
+The player directs a *case*, not just a chat. Typed dialogue is one verb; each
+verb produces a fact that enters the detective's memory and can be presented to
+suspects. Grounded in real procedurals:
 
----
+- **Interrogate** (dialogue) — existing
+- **Present evidence** to a suspect (Phoenix-Wright-style; their next line reacts)
+- **Examine an object** — inspect a phone, receipt, weapon; surfaces details
+- **Pull CCTV footage** for a location + time window — returns a clip/still
+- **Phone records** — call logs, who-called-whom, cell-tower location pings
+- **Financial trace** — transfers, who paid whom (motive)
+- **Forensics / lab** — time of death, prints/DNA on an object
+- **Background check** — priors, debts, relationships
+- **Timeline reconstruction** — assemble known events, spot the gap
+- **Ask the Notebook** — cross-everything synthesis query (§4)
+- **Suggested move / hint** — when stuck, AI proposes the next question *or*
+  investigative action fitting the current state (the "AI-generated questions"
+  idea, generalized to actions)
 
-## 5. Audio — local TTS (and optional STT)
-
-Fits the hackathon's "everything stays on your machine" thesis perfectly: even
-the voices never leave the laptop.
-
-- **TTS: Kokoro-82M (local).** Apache-2.0, ~2-3GB, runs on CPU faster than
-  real-time, 54 voices. Architecture: a small local service (Python FastAPI or
-  `kokoro-onnx`) exposing `POST /tts {text, voice}` → wav; a Next.js route
-  proxies it; each suspect is assigned a distinct Kokoro voice. When a suspect
-  answers, synthesize and play the line. Short lines synthesize in a fraction of
-  a second, so latency is a non-issue for a demo. **This is the feature that most
-  makes suspects feel alive** and is a strong "even audio is local" story.
-- **STT: optional / stretch.** The player types by default (better for a
-  controlled demo anyway). If we add voice input:
-  - On the **Mac dev/demo machine**, use **whisper.cpp** (Metal-accelerated,
-    fully local, no GPU-vendor lock) — Parakeet v3 is **NVIDIA/CUDA-only** and
-    will not run on the Mac, so it can't be the demo path.
-  - Document **Parakeet-tdt-0.6b-v3** as the "if you deploy on an NVIDIA box"
-    high-throughput option, but it is not on the demo critical path.
-  - STT is explicitly a stretch item; cut first if time is short.
+The more verbs, the larger and more heterogeneous the memory store — which is
+exactly what makes retrieval matter and the md-file argument (§6) collapse.
 
 ---
 
-## 6. Assets — set the scene with Phaser
+## 4. Harder Supermemory leverage
 
-- Pull more from the existing CC0 Kenney packs already downloaded (Tiny Dungeon,
-  Roguelike/RPG) plus one or two additional CC0 packs if needed: station walls,
-  desks, doors, interrogation-room furniture, evidence-locker shelving, a case-
-  board corkboard.
-- Dress the station scene: real room interiors (walls/desks/doors) instead of a
-  bare tiled floor, so walking between rooms reads as a place. Distinct look per
-  room (interrogation, evidence locker, case board).
-- Suspect portraits for the conversational UI (§2) sourced from the same
-  pixel-art character sets, one per suspect, consistent style.
-- All assets CC0, credited in `public/sprites/CREDITS.txt` (already established).
-
----
-
-## 7. Scope tiering (honest, given ~2.5 days)
-
-**v2 Core — must ship for the demo (in build order):**
-1. Persistent conversational transcript UI (§2) — fixes biggest visible gap.
-2. Memory ON/OFF toggle (§4) — biggest demo payoff per hour, trivial to build.
-3. Culprit pre-planted memory + full Case 1 content (§1) — the mystery becomes
-   real and solvable; one new `planted-by-culprit` source tag + authored case.
-4. Local TTS voices per suspect (§5, Kokoro) — the "feels like a real game" +
-   "even audio is local" beat.
-5. Scene dressing: room interiors + suspect portraits (§6).
-
-**Stretch — build only if Core lands with time to spare:**
-6. Detective's Case Notebook cross-suspect synthesis (§3) — ambitious, highest
-   ceiling; do it if Core is solid.
-7. Lie-contagion map (§3).
-8. STT voice input via whisper.cpp (§5).
-
-**Cut lines if we fall behind:** drop STT first, then the contagion map, then the
-notebook. Core alone is a complete, winning demo.
+- **Detective's Case Notebook — live cross-suspect synthesis (NOW CORE).** Ask
+  free-form ("what do I know about the docks?"); the engine searches the
+  detective's accumulated memory across *every* interrogation and every
+  investigation result so far, and Claude synthesizes an answer with citations
+  back to which suspect/verb each fact came from. This is the load-bearing proof
+  of "why Supermemory" (§6) — promoted from stretch to Core.
+- **Lie-contagion / knowledge map (stretch).** Visualize which suspects "know" a
+  given claim and in what order, built from real memory-search history — turns the
+  best mechanic into the best screenshot.
+- **Profile-driven suspect state.** `/v4/profile` derives each suspect's current
+  trust/suspicion/what-they-hide from accumulated memories; show a visible diff
+  after a suspect is caught in a lie.
 
 ---
 
-## 8. v2 demo video shape (~3 min)
+## 5. Prove the dependency (the demo kill-shot)
 
-1. Title card → walk the dressed station into Interrogation Room 1.
+- **A "Memory: ON/OFF" toggle.** Flip OFF → suspects stop remembering (the
+  follow-up you asked two minutes ago draws a blank, a planted lie doesn't stick,
+  the case board's contradictions vanish). Flip ON → same suspect, same question,
+  it all snaps back. Implementation: swap the real `SupermemoryClient` for a null
+  client returning no memories; nothing else changes. ~15-second beat that makes
+  the dependency undeniable instead of narrated.
+
+---
+
+## 6. Why Supermemory, not an md file (the defense)
+
+Anticipated judge challenge: *"I could keep an md file per character, append the
+player's inputs, and dump it into the prompt. Why Supermemory?"*
+
+Honest answer — an md file is fine for a toy with 15 static facts; it breaks the
+moment the game becomes what makes it fun:
+
+1. **Relevance at scale.** Dumping the whole store into every prompt as the
+   session grows blows the context window, drowns the model in irrelevant facts
+   (worse answers), and costs more every turn. Supermemory does hybrid
+   semantic+keyword retrieval — ask about "the docks," get the 3 relevant
+   memories, not all 200. With ~10 investigation verbs feeding it, the store is
+   far too large/heterogeneous to dump.
+2. **Cross-suspect synthesis (the Notebook).** Answering "what do I know about the
+   docks?" must search across every suspect, every CCTV pull, every forensic
+   result, every planted lie — the whole session — and synthesize with citations.
+   Doing that with md files = rebuilding Supermemory, badly.
+3. **Derived profiles.** Supermemory computes a suspect's current mental state
+   from accumulated memories automatically; md files make you hand-maintain it
+   every turn.
+4. **Extraction.** Supermemory turns raw input (a messy statement, a transcript
+   chunk) into structured retrievable memory; md files need hand-authored atomic
+   facts.
+
+**Winning line:** *"You can paste 15 facts into an md file. You cannot paste in
+relevance-ranked retrieval across a growing multi-source investigation, automatic
+profile derivation, and cross-entity synthesis — and those are the exact three
+things that make the mystery playable. The game is built to require them."*
+
+The **demo proves it, the argument frames it**: the memory-off toggle, the
+Notebook synthesizing across a full case live, the profile-diff after a caught
+lie, and the trace panel showing precise relevant memories retrieved from
+hundreds — a judge *sees* Supermemory doing what an md dump visibly cannot at
+scale. **This defense is only real if we use those capabilities** — which is why
+the Notebook and the multi-verb investigation are Core, not stretch.
+
+---
+
+## 7. Conversational, characterful UI
+
+- **Persistent interrogation transcript** — ongoing chat-style back-and-forth with
+  portrait + name, not a box that replaces itself each question.
+- **Distinct visual voice per suspect** — portrait, accent color, dialogue
+  treatment.
+- **Present-evidence as a conversational move** (§3).
+- **Suggested question/lie/action affordance** (§3).
+
+---
+
+## 8. Audio — local (fits "everything on your machine")
+
+- **TTS: Kokoro-82M (Core-if-time).** Apache-2.0, ~2-3GB, CPU faster-than-
+  realtime, 54 voices. Small local service (`POST /tts {text, voice}` → wav);
+  each suspect gets a distinct voice; suspect lines are spoken. Strong "even the
+  voices never leave the laptop" story and the biggest single "feels like a real
+  game" lift.
+- **STT: stretch / likely drop.** Typing is cleaner for a recorded demo. If added:
+  **whisper.cpp** (Metal, local) on the Mac demo machine — **Parakeet v3 is
+  NVIDIA/CUDA-only and will not run on the Mac**, so it's the "deploy on an NVIDIA
+  box" path only, not the demo path.
+
+---
+
+## 9. Assets — set the scene with Phaser
+
+- More CC0 Kenney assets (Tiny Dungeon / Roguelike, already downloaded; add packs
+  if needed): station walls, desks, doors, interrogation furniture, evidence-
+  locker shelving, a case-board corkboard.
+- Dress the station: real room interiors per room (interrogation / evidence locker
+  / case board) instead of a bare floor, so it reads as a place.
+- Suspect portraits from the same pixel-art sets, one per suspect, consistent
+  style. All CC0, credited in `public/sprites/CREDITS.txt`.
+
+---
+
+## 10. Scope tiering (honest, ~2.5 days)
+
+**v2 Core — must ship for the demo (build order):**
+1. Persistent conversational transcript UI (§7).
+2. Memory ON/OFF toggle (§5).
+3. Engine: case generation + validation + seed, with the hand-validated fallback
+   case (§0, §1).
+4. Investigation verbs — at least Present + CCTV + phone + forensics beyond
+   dialogue (§3), enough to make the store genuinely multi-source.
+5. Detective's Case Notebook synthesis (§4) — the "why Supermemory" proof.
+6. Scene dressing: room interiors + suspect portraits (§9).
+7. Local TTS voices per suspect (§8) — Core if time allows after 1-6.
+
+**Stretch — only if Core lands with time to spare:**
+8. Lie-contagion map (§4).
+9. STT voice input via whisper.cpp (§8).
+
+**Cut lines:** drop STT first, then contagion map, then TTS, then trim
+investigation verbs to Present + CCTV. Core 1-5 + fallback case is a complete,
+winning demo on its own.
+
+---
+
+## 11. v2 demo video shape (~3 min)
+
+1. Title → walk the dressed station into Interrogation Room 1.
 2. Ask a suspect where they were at 22:10 — they answer **in their own voice**
-   (Kokoro). Memory-trace panel shows the real retrieved memory behind it.
-3. Find evidence on another suspect's phone; **Present** it to the liar — their
-   next spoken line changes because it's now in their memory.
-4. Plant a false lead in a second suspect; revisit the first; show the lie has
-   spread (contagion map if built, transcript if not).
-5. **The kill-shot:** flip Memory OFF. Ask the same follow-up — the suspect is
-   blank, the contradiction vanishes. Flip it ON — it all snaps back. Narrate:
-   "Without Supermemory, there's no game."
-6. Make the accusation; the ending, generated from the full memory trail, names
-   the culprit *and* the false memory they planted.
+   (Kokoro). Trace panel shows the real retrieved memory behind it.
+3. Pull CCTV / phone records from the world; **Present** a contradicting clip to
+   the liar — their next spoken line changes because it's now in their memory.
+4. Plant a false lead in a second suspect; revisit the first; the lie has spread.
+5. Open the **Notebook**: "what do I know about the docks?" — it synthesizes
+   across every suspect and every clip pulled, with citations. (No md file does
+   this.)
+6. **Kill-shot:** flip Memory OFF — the suspect is blank, contradictions vanish;
+   flip ON — it snaps back. "Without Supermemory, there's no game."
+7. Accuse. The generated ending names the culprit *and* the planted false memory.
 
 ---
 
-## 9. Non-goals for v2
+## 12. Non-goals for v2
 
-- No second full case (cross-case memory stays a stretch idea, not v2 Core).
-- No cloud anything — TTS, STT, memory, and LLM auth are all local/subscription.
+- No second full case (cross-case memory stays a future idea).
+- No cloud anything — TTS, STT, memory, LLM auth all local/subscription.
 - No free-roam physics beyond room-to-room walking already built.
-- No multiplayer, no accounts, no save system beyond what Supermemory persists.
+- No multiplayer, accounts, or save system beyond what Supermemory persists.
 
 ---
 
-## Open questions for the reviewer (you)
+## Resolved decisions (from review discussion)
 
-1. **TTS in or out of Core?** It's the biggest atmosphere win but adds a local
-   Python/ONNX service to run alongside Next.js + Supermemory. In Core, or
-   stretch?
-2. **Case Notebook vs Contagion map** — if only one stretch item lands, which do
-   you want prioritized? (I'd pick the Notebook — it's the stronger Supermemory
-   showcase.)
-3. **STT at all for this demo?** Typing is cleaner for a recorded demo; voice-in
-   is cool but risky on time and Mac-constrained. Keep as stretch, or drop
-   entirely?
-4. **Case content** — happy for me to author Case 1's full script (4 suspects,
-   timeline, ~15 evidence items, the culprit's planted memory), or do you want to
-   shape the story beats first?
+- Content is engine-generated; only UI content is hand-authored. ✅
+- Investigation is multi-verb, not just typed Q&A. ✅
+- Case Notebook cross-suspect synthesis → **Core** (it's the why-Supermemory
+  defense). ✅
+- TTS (Kokoro) → Core-if-time; STT → stretch/drop; Parakeet not on Mac demo
+  path. ✅
+- Generated case needs validation + a hand-validated fallback for demo safety. ✅
+
+## Remaining question for the reviewer
+
+- Any Core item you'd cut or reorder given the 2.5-day window? (My recommended
+  minimum-winning set is Core 1-5 + fallback case; 6-7 are polish.)
