@@ -8,11 +8,35 @@
     "skipLibCheck": true,
     "outDir": "dist",
     "jsx": "preserve",
-    "lib": ["dom", "dom.iterable", "ES2022"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "ES2022"
+    ],
     "incremental": true,
-    "plugins": [{ "name": "next" }],
-    "types": ["node"]
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "types": [
+      "node"
+    ],
+    "allowJs": true,
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true
   },
-  "include": ["lib", "scripts", "test", "app", "components", "next-env.d.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "lib",
+    "scripts",
+    "test",
+    "app",
+    "components",
+    "next-env.d.ts",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

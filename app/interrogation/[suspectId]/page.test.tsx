@@ -43,12 +43,78 @@ describe('InterrogationPage', () => {
       '/api/interrogate',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ suspectId: 'mara', question: "Did you change Theo's route?" })
+        body: JSON.stringify({
+          suspectId: 'mara',
+          question: "Did you change Theo's route?",
+          memoryEnabled: true
+        })
       })
     )
     expect(screen.getByTestId('memory-trace-panel').textContent).toContain(
       'Rerouted Theo at 21:45.'
     )
+  })
+
+  it('accumulates a persistent transcript across multiple questions', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ answer: 'I was at the desk.', query: 'q1', retrievedMemories: [] })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ answer: 'I already told you.', query: 'q2', retrievedMemories: [] })
+      })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<InterrogationPage params={{ suspectId: 'mara' }} />)
+
+    const input = screen.getByLabelText('Ask a question')
+    fireEvent.change(input, { target: { value: 'Where were you?' } })
+    fireEvent.submit(input.closest('form') as HTMLFormElement)
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId('dialogue-box')).toHaveLength(1)
+    })
+
+    fireEvent.change(input, { target: { value: 'Are you sure?' } })
+    fireEvent.submit(input.closest('form') as HTMLFormElement)
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId('dialogue-box')).toHaveLength(2)
+    })
+
+    const transcript = screen.getByTestId('transcript')
+    // Questions render as plain text; answers reveal via the typewriter
+    // DialogueBox, so assert them via the reliable data-full-text attribute.
+    expect(transcript.textContent).toContain('Where were you?')
+    expect(transcript.textContent).toContain('Are you sure?')
+    const answers = screen.getAllByTestId('dialogue-box').map((el) => el.getAttribute('data-full-text'))
+    expect(answers).toEqual(['I was at the desk.', 'I already told you.'])
+  })
+
+  it('sends memoryEnabled: false after toggling memory off', async () => {
+    const fetchMock = stubFetchOnce({ answer: '...', query: 'q', retrievedMemories: [] })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<InterrogationPage params={{ suspectId: 'mara' }} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Memory: ON/ }))
+
+    fireEvent.change(screen.getByLabelText('Ask a question'), { target: { value: 'Hello?' } })
+    fireEvent.submit(screen.getByLabelText('Ask a question').closest('form') as HTMLFormElement)
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/interrogate',
+        expect.objectContaining({
+          body: JSON.stringify({ suspectId: 'mara', question: 'Hello?', memoryEnabled: false })
+        })
+      )
+    })
   })
 
   it('shows an error message when the request fails', async () => {

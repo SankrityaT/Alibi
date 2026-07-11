@@ -15,6 +15,14 @@ interface InterrogateResponse {
   retrievedMemories: RetrievedMemory[]
 }
 
+interface Turn {
+  id: number
+  question: string
+  answer: string
+  query: string
+  retrievedMemories: RetrievedMemory[]
+}
+
 export interface InterrogationPageProps {
   params: { suspectId: string }
 }
@@ -25,9 +33,10 @@ function displayName(suspectId: string): string {
 
 export default function InterrogationPage({ params }: InterrogationPageProps) {
   const [question, setQuestion] = useState('')
-  const [result, setResult] = useState<InterrogateResponse | null>(null)
+  const [turns, setTurns] = useState<Turn[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [memoryEnabled, setMemoryEnabled] = useState(true)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -38,7 +47,7 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
       const response = await fetch('/api/interrogate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ suspectId: params.suspectId, question })
+        body: JSON.stringify({ suspectId: params.suspectId, question, memoryEnabled })
       })
       const body = await response.json()
 
@@ -47,13 +56,26 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
         return
       }
 
-      setResult(body as InterrogateResponse)
+      const result = body as InterrogateResponse
+      setTurns((prev) => [
+        ...prev,
+        {
+          id: prev.length,
+          question,
+          answer: result.answer,
+          query: result.query,
+          retrievedMemories: result.retrievedMemories
+        }
+      ])
+      setQuestion('')
     } catch {
       setError('Could not reach the server. Is it running?')
     } finally {
       setIsLoading(false)
     }
   }
+
+  const latestTurn = turns.length > 0 ? turns[turns.length - 1] : null
 
   return (
     <main
@@ -66,7 +88,7 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
           'radial-gradient(circle at 50% 0%, rgba(212,149,46,0.10) 0%, transparent 45%), radial-gradient(ellipse at 50% 15%, #1a140c 0%, #0b0a08 70%)'
       }}
     >
-      <div style={{ width: '100%', maxWidth: 760, display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+      <div style={{ width: '100%', maxWidth: 760, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         <header style={{ textAlign: 'center' }}>
           <span className="uppercase-label" style={{ display: 'block' }}>
             Interrogation Room 1
@@ -87,6 +109,74 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
           </h1>
         </header>
 
+        {/* Memory ON/OFF toggle — the demo's proof that the game needs Supermemory. */}
+        <button
+          type="button"
+          aria-pressed={memoryEnabled}
+          onClick={() => setMemoryEnabled((v) => !v)}
+          style={{
+            alignSelf: 'center',
+            fontFamily: 'var(--font-mono)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.15em',
+            fontSize: '0.72rem',
+            padding: '0.5rem 1.1rem',
+            cursor: 'pointer',
+            background: memoryEnabled ? 'transparent' : 'rgba(158,27,27,0.18)',
+            color: memoryEnabled ? 'var(--amber)' : 'var(--accent-bright)',
+            border: `1px solid ${memoryEnabled ? 'var(--amber)' : 'var(--accent-bright)'}`
+          }}
+        >
+          {memoryEnabled ? '● Memory: ON' : '○ Memory: OFF — suspect forgets everything'}
+        </button>
+
+        {turns.length > 0 && (
+          <div
+            data-testid="transcript"
+            style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+          >
+            {turns.map((turn) => (
+              <div key={turn.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {/* Detective question */}
+                <div
+                  style={{
+                    alignSelf: 'flex-end',
+                    maxWidth: '80%',
+                    background: 'var(--bg-panel)',
+                    border: '1px solid var(--line)',
+                    borderRight: '3px solid var(--amber)',
+                    padding: '0.7rem 1rem',
+                    fontSize: '0.9rem',
+                    color: 'var(--paper-dim)'
+                  }}
+                >
+                  <span className="uppercase-label" style={{ display: 'block', marginBottom: 4 }}>
+                    You
+                  </span>
+                  {turn.question}
+                </div>
+                {/* Suspect answer */}
+                <div
+                  style={{
+                    alignSelf: 'flex-start',
+                    maxWidth: '85%',
+                    background:
+                      'radial-gradient(ellipse at 0% -30%, rgba(212,149,46,0.10), transparent 60%), var(--bg-elevated)',
+                    border: '1px solid var(--line)',
+                    borderLeft: '3px solid var(--accent)',
+                    padding: '0.9rem 1.1rem'
+                  }}
+                >
+                  <span className="uppercase-label" style={{ display: 'block', marginBottom: 6 }}>
+                    {displayName(params.suspectId)}
+                  </span>
+                  <DialogueBox text={turn.answer} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <form
           onSubmit={handleSubmit}
           style={{
@@ -95,7 +185,7 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
             gap: '0.6rem',
             background: 'var(--bg-panel)',
             border: '1px solid var(--line)',
-            padding: '1.5rem 1.6rem'
+            padding: '1.25rem 1.4rem'
           }}
         >
           <label htmlFor="question" className="uppercase-label">
@@ -154,20 +244,8 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
           </p>
         )}
 
-        {result && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div
-              style={{
-                background:
-                  'radial-gradient(ellipse at 50% -20%, rgba(212,149,46,0.12), transparent 60%), var(--bg-elevated)',
-                border: '1px solid var(--line)',
-                padding: '1.75rem 1.6rem'
-              }}
-            >
-              <DialogueBox text={result.answer} />
-            </div>
-            <MemoryTracePanel query={result.query} retrievedMemories={result.retrievedMemories} />
-          </div>
+        {latestTurn && (
+          <MemoryTracePanel query={latestTurn.query} retrievedMemories={latestTurn.retrievedMemories} />
         )}
       </div>
     </main>
