@@ -18,6 +18,32 @@ collapses into one answer only after you've dug enough.
 
 ---
 
+## THE ORGANIZING PRINCIPLE — memory works two ways
+
+Memory here is not one feature; it is **two opposing forces on the same
+Supermemory substrate**, and the game is the duel between them:
+
+- **Memory as a WEAPON (manipulation).** Memory that can be *rewritten*. The
+  culprit pre-plants a false memory to build an alibi or frame someone (the
+  crime); you plant lies to flush out the truth; lies spread suspect-to-suspect.
+  It works because a planted memory is **indistinguishable** from a real one
+  inside a suspect's head — that indistinguishability is the suspense. Isolation
+  (`containerTag`) makes manipulation *targeted*: you poison one specific brain.
+- **Memory as a LENS (connection).** Memory that *accumulates and synthesizes*.
+  Every fact from every investigation verb writes to *your* detective memory; the
+  Case Notebook connects it all with citations; the case board's contradictions
+  and final convergence are computed from that accumulating pile.
+
+The weapon side needs memory that is *mutable and isolated*; the lens side needs
+memory that is *relevance-ranked and cross-container-synthesizable*. **An md file
+is neither at scale — and that single fact is the whole "why Supermemory"
+defense.** Thematically: the culprit weaponized memory against you; you use
+memory to connect your way back to the truth, and you use their own weapon
+(planting) to expose them. **Memory vs. memory.** Every feature below slots into
+one axis or the other.
+
+---
+
 ## 0. Foundational principle: it's an ENGINE, content is generated
 
 **All game content is generated at runtime by our custom engine (Claude +
@@ -195,6 +221,38 @@ the Notebook and the multi-verb investigation are Core, not stretch.
 
 ---
 
+## 7b. Scoring, difficulty & replayability
+
+Difficulty is a **generation parameter** — the engine (§0) tunes a case's
+hardness along the two forces: harder = more manipulation to see through (more
+planted/spread memories, decoys) = more lens work required (deeper Notebook
+synthesis across more sources) to cut through it.
+
+| Level  | Points | Shape (engine targets) |
+|--------|:------:|------------------------|
+| Easy   | 10     | ~3 suspects, 1 planted memory, one obvious contradiction; solvable with a couple of verbs. |
+| Medium | 20     | 4 suspects, planted memory **plus** a red herring; contradictions need cross-referencing 2+ sources. |
+| Hard   | 30     | 4-5 suspects, multiple or *spread* planted memories, a decoy who looks guiltier than the culprit; the truth only emerges from Notebook synthesis across many sources. |
+
+Solve all three = **60**. Points stack across cases (progression + leaderboard
+fodder).
+
+- **Detective Rating (local, in Core).** Layered on top of the base points and
+  computed *from the memory trail*: moves/verbs used (efficiency), whether you
+  correctly ID'd the **planted memory** (not just the culprit), whether you got
+  fooled by a red herring or your own planted lie, and speed → a rank
+  (e.g. "Solved in 6 moves · caught the false memory · Rank: Inspector"). Ties the
+  score back to Supermemory (it's derived from accumulated memory), stays 100%
+  local (fits the thesis), costs little.
+- **Daily Case + global leaderboard (post-hackathon roadmap, NOT built).** A
+  shared daily seed makes everyone solve the *same* generated mystery so
+  times/scores are comparable (the Wordle model) — the fix for "generated cases
+  aren't comparable." A global board is inherently networked, so it sits *outside*
+  the local-only thesis and outside the 2.5-day window: pitch it in the
+  submission, don't build it.
+
+---
+
 ## 8. Audio — local (fits "everything on your machine")
 
 - **TTS: Kokoro-82M (Core-if-time).** Apache-2.0, ~2-3GB, CPU faster-than-
@@ -231,12 +289,16 @@ the Notebook and the multi-verb investigation are Core, not stretch.
 4. Investigation verbs — at least Present + CCTV + phone + forensics beyond
    dialogue (§3), enough to make the store genuinely multi-source.
 5. Detective's Case Notebook synthesis (§4) — the "why Supermemory" proof.
-6. Scene dressing: room interiors + suspect portraits (§9).
-7. Local TTS voices per suspect (§8) — Core if time allows after 1-6.
+6. Difficulty tiers (easy/med/hard as a generation param) + end-of-case
+   Detective Rating (§7b).
+7. Scene dressing: room interiors + suspect portraits (§9).
+8. Local TTS voices per suspect (§8) — Core if time allows after 1-7.
 
 **Stretch — only if Core lands with time to spare:**
-8. Lie-contagion map (§4).
-9. STT voice input via whisper.cpp (§8).
+9. Lie-contagion map (§4).
+10. STT voice input via whisper.cpp (§8).
+11. Daily Case shared leaderboard (§7b) — post-hackathon roadmap, likely not
+    built at all inside the window.
 
 **Cut lines:** drop STT first, then contagion map, then TTS, then trim
 investigation verbs to Present + CCTV. Core 1-5 + fallback case is a complete,
