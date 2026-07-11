@@ -10,12 +10,15 @@ export interface MemoryTracePanelProps {
 
 export function MemoryTracePanel({ query, retrievedMemories }: MemoryTracePanelProps) {
   return (
-    <aside data-testid="memory-trace-panel">
-      <p>Query: {query}</p>
+    <aside className="memory-trace-panel" data-testid="memory-trace-panel">
+      <p className="uppercase-label" style={{ margin: '0 0 0.75rem', color: 'var(--amber)' }}>
+        Memory Trace
+      </p>
+      <p className="memory-trace-query">Query: {query}</p>
       {retrievedMemories.length === 0 ? (
-        <p>No relevant memories found.</p>
+        <p className="memory-trace-empty">No relevant memories found.</p>
       ) : (
-        <ul>
+        <ul className="memory-trace-list">
           {retrievedMemories.map((memory) => (
             <li key={memory.id}>{memory.content}</li>
           ))}

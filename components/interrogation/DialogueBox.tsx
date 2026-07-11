@@ -31,7 +31,7 @@ export function DialogueBox({ text, charactersPerTick = 1, tickMs = 20 }: Dialog
   }, [text, charactersPerTick, tickMs])
 
   return (
-    <div data-testid="dialogue-box" data-full-text={text}>
+    <div className="dialogue-box" data-testid="dialogue-box" data-full-text={text}>
       {text.slice(0, visibleCount)}
     </div>
   )

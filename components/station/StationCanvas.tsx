@@ -81,20 +81,67 @@ export function StationCanvas({ onEnterRoom }: StationCanvasProps) {
     if (!canvas || !context) {
       return
     }
-    context.clearRect(0, 0, canvas.width, canvas.height)
-    context.fillStyle = '#111'
-    context.fillRect(0, 0, canvas.width, canvas.height)
-    context.fillStyle = '#eee'
-    for (const room of rooms) {
-      context.fillRect(
-        room.doorTrigger.x,
-        room.doorTrigger.y,
-        room.doorTrigger.width,
-        room.doorTrigger.height
-      )
+    const { width, height } = canvas
+
+    context.clearRect(0, 0, width, height)
+
+    // Floor: a dim amber-lit wood tone rather than flat black.
+    const floor = context.createRadialGradient(
+      width / 2,
+      height / 2,
+      40,
+      width / 2,
+      height / 2,
+      Math.max(width, height) / 1.1
+    )
+    floor.addColorStop(0, '#241d13')
+    floor.addColorStop(1, '#0c0a07')
+    context.fillStyle = floor
+    context.fillRect(0, 0, width, height)
+
+    // Faint floorboard lines for texture.
+    context.strokeStyle = 'rgba(212, 149, 46, 0.05)'
+    context.lineWidth = 1
+    for (let x = 0; x < width; x += 40) {
+      context.beginPath()
+      context.moveTo(x, 0)
+      context.lineTo(x, height)
+      context.stroke()
     }
-    context.fillStyle = '#f33'
-    context.fillRect(position.x - 5, position.y - 5, 10, 10)
+
+    // Door triggers glow amber, with a soft falloff instead of a hard edge.
+    for (const room of rooms) {
+      const { x, y, width: w, height: h } = room.doorTrigger
+      const glow = context.createRadialGradient(
+        x + w / 2,
+        y + h / 2,
+        0,
+        x + w / 2,
+        y + h / 2,
+        Math.max(w, h) * 1.8
+      )
+      glow.addColorStop(0, 'rgba(212, 149, 46, 0.85)')
+      glow.addColorStop(1, 'rgba(212, 149, 46, 0)')
+      context.fillStyle = glow
+      context.fillRect(x - 30, y - 30, w + 60, h + 60)
+      context.fillStyle = 'rgba(232, 223, 200, 0.9)'
+      context.fillRect(x, y, w, h)
+    }
+
+    // Player marker: a red diamond "case pin" with a cream outline and glow.
+    const px = position.x
+    const py = position.y
+    context.save()
+    context.shadowColor = 'rgba(158, 27, 27, 0.9)'
+    context.shadowBlur = 16
+    context.translate(px, py)
+    context.rotate(Math.PI / 4)
+    context.fillStyle = '#c1272d'
+    context.fillRect(-7, -7, 14, 14)
+    context.strokeStyle = '#e8dfc8'
+    context.lineWidth = 1.5
+    context.strokeRect(-7, -7, 14, 14)
+    context.restore()
   }, [position])
 
   return (
@@ -105,6 +152,7 @@ export function StationCanvas({ onEnterRoom }: StationCanvasProps) {
       data-testid="station-canvas"
       data-player-x={position.x}
       data-player-y={position.y}
+      style={{ display: 'block', width: '100%', height: 'auto' }}
     />
   )
 }
