@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { flushSync } from 'react-dom'
 import { computeNextPosition, detectRoomEntry } from '../../lib/station/movement.js'
 import { rooms, STATION_BOUNDS } from '../../lib/station/rooms.js'
 import type { Position, TrackedKey } from '../../lib/station/types.js'
@@ -49,21 +48,13 @@ export function StationCanvas({ onEnterRoom }: StationCanvasProps) {
       const deltaMs = now - lastTime
       lastTime = now
 
-      // flushSync forces the DOM (data-player-x/y attributes) to reflect the
-      // new position synchronously within this frame callback, rather than
-      // being deferred by React 18's automatic batching to a later
-      // microtask. Without this, callers driving the rAF loop directly
-      // (e.g. tests invoking the captured frame callback outside of a React
-      // event) would observe stale attributes immediately after the call.
-      flushSync(() => {
-        setPosition((current) => {
-          const next = computeNextPosition(current, keysRef.current, STATION_BOUNDS, deltaMs)
-          const enteredRoomId = detectRoomEntry(next, rooms)
-          if (enteredRoomId) {
-            onEnterRoom(enteredRoomId)
-          }
-          return next
-        })
+      setPosition((current) => {
+        const next = computeNextPosition(current, keysRef.current, STATION_BOUNDS, deltaMs)
+        const enteredRoomId = detectRoomEntry(next, rooms)
+        if (enteredRoomId) {
+          onEnterRoom(enteredRoomId)
+        }
+        return next
       })
 
       frameId = requestAnimationFrame(tick)

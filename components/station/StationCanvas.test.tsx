@@ -1,5 +1,6 @@
 // components/station/StationCanvas.test.tsx
 // @vitest-environment jsdom
+import { act } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { StationCanvas } from './StationCanvas.js'
@@ -39,7 +40,9 @@ describe('StationCanvas', () => {
     const startX = Number(screen.getByTestId('station-canvas').getAttribute('data-player-x'))
 
     fireEvent.keyDown(window, { key: 'ArrowRight' })
-    runFrame(1000)
+    act(() => {
+      runFrame(1000)
+    })
 
     const nextX = Number(screen.getByTestId('station-canvas').getAttribute('data-player-x'))
     expect(nextX).toBeGreaterThan(startX)
@@ -54,7 +57,9 @@ describe('StationCanvas', () => {
     render(<StationCanvas onEnterRoom={onEnterRoom} />)
 
     fireEvent.keyDown(window, { key: 'ArrowUp' })
-    runFrame(1500)
+    act(() => {
+      runFrame(1500)
+    })
 
     expect(onEnterRoom).toHaveBeenCalledWith('interrogation-1')
   })
@@ -68,7 +73,9 @@ describe('StationCanvas', () => {
 
     fireEvent.keyDown(window, { key: 'ArrowRight' })
     fireEvent.keyUp(window, { key: 'ArrowRight' })
-    runFrame(1000)
+    act(() => {
+      runFrame(1000)
+    })
 
     const x = Number(screen.getByTestId('station-canvas').getAttribute('data-player-x'))
     expect(x).toBe(400)
