@@ -1,0 +1,3 @@
+Sprites in this folder are from Kenney's "Tiny Dungeon" asset pack
+(https://kenney.nl/assets/tiny-dungeon), licensed CC0 1.0 Universal
+(public domain, no attribution required). Credited here voluntarily.

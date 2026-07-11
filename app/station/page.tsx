@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { StationCanvas } from '../../components/station/StationCanvas.js'
+import { PhaserStation } from '../../components/station/PhaserStation.js'
 
 export default function StationPage() {
   const [lastRoom, setLastRoom] = useState<string | null>(null)
@@ -62,7 +62,7 @@ export default function StationPage() {
           overflow: 'hidden'
         }}
       >
-        <StationCanvas onEnterRoom={handleEnterRoom} />
+        <PhaserStation onEnterRoom={handleEnterRoom} />
         <div
           aria-hidden="true"
           style={{
