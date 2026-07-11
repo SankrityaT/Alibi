@@ -3,3 +3,4 @@ dist/
 .env
 .next/
 .playwright-mcp/
+.DS_Store

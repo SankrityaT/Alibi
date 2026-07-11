@@ -226,8 +226,9 @@ npm run dev         # http://localhost:3000
 **Dev commands:** `npm test`, `npm run typecheck`, `npm run dev-interrogate`
 (a CLI harness that exercises the memory loop against the live Supermemory server).
 
-> Note for the landing page's "get started": link to the repo README rather than
-> duplicating these steps, so they only need maintaining in one place.
+> Note for the landing page's "get started": link to the repo README
+> (https://github.com/SankrityaT/Alibi) rather than duplicating these steps, so
+> they only need maintaining in one place.
 
 ---
 
@@ -351,5 +352,5 @@ SDK), Next.js, and Phaser. Pixel-art assets by Kenney (CC0).
 - **Privacy:** memory engine 100% local; nothing about the investigation leaves the
   machine
 - **Assets:** Kenney pixel-art packs (CC0)
-- **Repo:** (add GitHub URL)
+- **Repo:** https://github.com/SankrityaT/Alibi
 - **Demo video:** (add link once recorded)
