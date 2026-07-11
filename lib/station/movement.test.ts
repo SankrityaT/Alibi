@@ -22,6 +22,28 @@ describe('computeNextPosition', () => {
     const next = computeNextPosition({ x: 5, y: 300 }, keysOf('ArrowLeft'), STATION_BOUNDS, 1000)
     expect(next.x).toBe(STATION_BOUNDS.x)
   })
+
+  it('clamps movement at the right/bottom station bounds', () => {
+    const next = computeNextPosition(
+      { x: STATION_BOUNDS.x + STATION_BOUNDS.width - 5, y: 300 },
+      keysOf('ArrowRight'),
+      STATION_BOUNDS,
+      1000
+    )
+    expect(next.x).toBe(STATION_BOUNDS.x + STATION_BOUNDS.width)
+  })
+
+  it('moves both axes by the full computed distance when moving diagonally (not normalized)', () => {
+    const next = computeNextPosition(
+      { x: 400, y: 300 },
+      keysOf('ArrowRight', 'ArrowUp'),
+      STATION_BOUNDS,
+      1000
+    )
+    // SPEED_PER_MS (0.2) * deltaMs (1000) = 200 full distance on each axis,
+    // not scaled down to preserve constant diagonal speed.
+    expect(next).toEqual({ x: 600, y: 100 })
+  })
 })
 
 describe('detectRoomEntry', () => {

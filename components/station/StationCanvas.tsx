@@ -19,6 +19,7 @@ function isTrackedKey(key: string): key is TrackedKey {
 export function StationCanvas({ onEnterRoom }: StationCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const keysRef = useRef<Set<TrackedKey>>(new Set())
+  const currentRoomRef = useRef<string | null>(null)
   const [position, setPosition] = useState<Position>(START_POSITION)
 
   useEffect(() => {
@@ -48,21 +49,31 @@ export function StationCanvas({ onEnterRoom }: StationCanvasProps) {
       const deltaMs = now - lastTime
       lastTime = now
 
-      setPosition((current) => {
-        const next = computeNextPosition(current, keysRef.current, STATION_BOUNDS, deltaMs)
-        const enteredRoomId = detectRoomEntry(next, rooms)
-        if (enteredRoomId) {
-          onEnterRoom(enteredRoomId)
-        }
-        return next
-      })
+      setPosition((current) => computeNextPosition(current, keysRef.current, STATION_BOUNDS, deltaMs))
 
       frameId = requestAnimationFrame(tick)
     }
 
     frameId = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frameId)
-  }, [onEnterRoom])
+  }, [])
+
+  // Room-entry detection lives in its own effect, keyed on `position`, rather
+  // than inside the setPosition updater above. Effects run after the commit
+  // (not during render), so calling onEnterRoom here never risks updating a
+  // parent component's state from inside a setState updater function. The
+  // ref (not state) tracks the last-known room so onEnterRoom fires exactly
+  // once per transition, not once per frame while the player stands still
+  // inside a door trigger.
+  useEffect(() => {
+    const enteredRoomId = detectRoomEntry(position, rooms)
+    if (enteredRoomId !== currentRoomRef.current) {
+      currentRoomRef.current = enteredRoomId
+      if (enteredRoomId) {
+        onEnterRoom(enteredRoomId)
+      }
+    }
+  }, [position, onEnterRoom])
 
   useEffect(() => {
     const canvas = canvasRef.current

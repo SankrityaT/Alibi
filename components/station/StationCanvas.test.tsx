@@ -62,6 +62,36 @@ describe('StationCanvas', () => {
     })
 
     expect(onEnterRoom).toHaveBeenCalledWith('interrogation-1')
+    expect(onEnterRoom).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not re-call onEnterRoom on subsequent frames while still inside the same door trigger', () => {
+    stubPerformanceNow(0)
+    const { runFrame } = stubAnimationFrame()
+    const onEnterRoom = vi.fn()
+
+    render(<StationCanvas onEnterRoom={onEnterRoom} />)
+
+    fireEvent.keyDown(window, { key: 'ArrowUp' })
+    act(() => {
+      runFrame(1500)
+    })
+    expect(onEnterRoom).toHaveBeenCalledTimes(1)
+
+    // Remain stationary (no keys held) for several more frames while still
+    // inside the door-trigger rectangle; onEnterRoom must not fire again.
+    fireEvent.keyUp(window, { key: 'ArrowUp' })
+    act(() => {
+      runFrame(1600)
+    })
+    act(() => {
+      runFrame(1700)
+    })
+    act(() => {
+      runFrame(1800)
+    })
+
+    expect(onEnterRoom).toHaveBeenCalledTimes(1)
   })
 
   it('stops tracking a key on keyup', () => {
