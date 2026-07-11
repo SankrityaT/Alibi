@@ -3,7 +3,7 @@ import { HttpSupermemoryClient } from '../lib/supermemory/client.js'
 import { ClaudeClient } from '../lib/anthropic/client.js'
 import { seedGroundTruth, tellSuspect } from '../lib/suspect/memory.js'
 import { respondAsSuspect } from '../lib/suspect/respond.js'
-import { mara } from '../test/fixtures/suspects.js'
+import { mara, jonas } from '../test/fixtures/suspects.js'
 
 function requireEnv(name: string): string {
   const value = process.env[name]
@@ -48,6 +48,20 @@ async function main(): Promise<void> {
   console.log('--- Second answer, after a planted claim ---')
   console.log(second.answer)
   console.log('Retrieved memories:', second.retrievedMemories)
+
+  await seedGroundTruth(
+    jonas.containerTag,
+    ['Was at the docks at 22:00 to meet Theo for money.'],
+    supermemory
+  )
+
+  const isolationCheck = await respondAsSuspect(mara, 'Where was Jonas at 22:00?', {
+    supermemory,
+    anthropic
+  })
+  console.log('--- Isolation check: asking Mara about a fact only Jonas witnessed ---')
+  console.log(isolationCheck.answer)
+  console.log('Retrieved memories (expect empty):', isolationCheck.retrievedMemories)
 }
 
 main().catch((error) => {
