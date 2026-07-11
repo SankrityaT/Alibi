@@ -58,7 +58,7 @@ export function PhaserStation({ onEnterRoom }: PhaserStationProps) {
           }
 
           this.player = this.add.sprite(position.x, position.y, 'detective')
-          this.player.setScale(2.5)
+          this.player.setScale(4)
           this.player.setDepth(10)
 
           this.cursors = this.input.keyboard!.createCursorKeys()
