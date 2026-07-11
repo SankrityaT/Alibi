@@ -44,6 +44,8 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
       }
 
       setResult(body as InterrogateResponse)
+    } catch {
+      setError('Could not reach the server. Is it running?')
     } finally {
       setIsLoading(false)
     }

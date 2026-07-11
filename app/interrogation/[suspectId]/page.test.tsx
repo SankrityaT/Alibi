@@ -66,4 +66,20 @@ describe('InterrogationPage', () => {
       expect(screen.getByRole('alert').textContent).toBe('Unknown suspect: mara')
     })
   })
+
+  it('shows an error message when the network request itself fails', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error('network error'))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<InterrogationPage params={{ suspectId: 'mara' }} />)
+
+    fireEvent.change(screen.getByLabelText('Ask a question'), {
+      target: { value: 'Anything?' }
+    })
+    fireEvent.submit(screen.getByLabelText('Ask a question').closest('form') as HTMLFormElement)
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toBe('Could not reach the server. Is it running?')
+    })
+  })
 })
