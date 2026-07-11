@@ -2,7 +2,8 @@ import 'dotenv/config'
 import { HttpSupermemoryClient } from '../lib/supermemory/client.js'
 import { ClaudeClient } from '../lib/anthropic/client.js'
 import { seedGroundTruth, tellSuspect } from '../lib/suspect/memory.js'
-import { respondAsSuspect, type CharacterSheet } from '../lib/suspect/respond.js'
+import { respondAsSuspect } from '../lib/suspect/respond.js'
+import { mara } from '../test/fixtures/suspects.js'
 
 function requireEnv(name: string): string {
   const value = process.env[name]
@@ -18,15 +19,6 @@ async function main(): Promise<void> {
     apiKey: requireEnv('SUPERMEMORY_API_KEY')
   })
   const anthropic = new ClaudeClient(requireEnv('ANTHROPIC_API_KEY'))
-
-  const mara: CharacterSheet = {
-    suspectId: 'mara',
-    containerTag: 'dev-suspect-mara',
-    name: 'Mara Okafor',
-    voice: 'clipped, professional, deflects with procedure',
-    motive: 'covering up the reroute she made at 21:45',
-    hiddenFacts: 'She edited the dispatch log to reroute Theo at 21:45.'
-  }
 
   await seedGroundTruth(
     mara.containerTag,

@@ -2,21 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { FakeSupermemoryClient } from '../supermemory/fakeClient.js'
 import { FakeAnthropicClient } from '../anthropic/fakeClient.js'
 import { seedGroundTruth } from './memory.js'
-import { respondAsSuspect, type CharacterSheet } from './respond.js'
-
-const mara: CharacterSheet = {
-  suspectId: 'mara',
-  containerTag: 'suspect-mara',
-  name: 'Mara Okafor',
-  voice: 'clipped, professional, deflects with procedure',
-  motive: "covering up the reroute she made at 21:45",
-  hiddenFacts: "She edited the dispatch log to reroute Theo at 21:45."
-}
+import { respondAsSuspect } from './respond.js'
+import { mara } from '../../test/fixtures/suspects.js'
+import { echoResponder } from '../../test/fixtures/echoResponder.js'
 
 describe('respondAsSuspect', () => {
   it('grounds the answer in retrieved memories and the character sheet', async () => {
     const supermemory = new FakeSupermemoryClient()
-    const anthropic = new FakeAnthropicClient((params) => `RESPONSE_USING: ${params.userMessage}`)
+    const anthropic = new FakeAnthropicClient(echoResponder())
 
     await seedGroundTruth(
       mara.containerTag,
@@ -42,7 +35,7 @@ describe('respondAsSuspect', () => {
 
   it('tells the model when nothing relevant was found, instead of inventing facts', async () => {
     const supermemory = new FakeSupermemoryClient()
-    const anthropic = new FakeAnthropicClient((params) => `RESPONSE_USING: ${params.userMessage}`)
+    const anthropic = new FakeAnthropicClient(echoResponder())
 
     const result = await respondAsSuspect(mara, 'What is the capital of France?', {
       supermemory,
