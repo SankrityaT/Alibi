@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { DialogueBox } from '../../../components/interrogation/DialogueBox.js'
 import { MemoryTracePanel } from '../../../components/interrogation/MemoryTracePanel.js'
 import { useSpokenLine } from '../../../lib/tts/useSpokenLine.js'
+import { useMicTranscription } from '../../../lib/stt/useMicTranscription.js'
 
 interface RetrievedMemory {
   id: string
@@ -41,6 +42,21 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
   // Speaks each new suspect answer aloud in that suspect's voice. Degrades to
   // silence (ttsAvailable=false) when no local Kokoro server is running.
   const { speak, isSpeaking, ttsAvailable } = useSpokenLine()
+  // Push-to-talk mic: the player may optionally speak their question. A resolved
+  // transcript is dropped into the question field; on any failure the hook
+  // flips sttAvailable=false and the button hides, so typing stays the fallback.
+  const { isRecording, sttAvailable, start: startMic, stop: stopMic } = useMicTranscription()
+
+  async function handleMicToggle() {
+    if (isRecording) {
+      const transcript = await stopMic()
+      if (transcript && transcript.trim().length > 0) {
+        setQuestion(transcript)
+      }
+    } else {
+      await startMic()
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -234,6 +250,29 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
                 outline: 'none'
               }}
             />
+            {/* Push-to-talk mic — speak the question instead of typing it.
+                Hidden when STT is unavailable (no whisper.cpp server / mic
+                denied) so typing remains the fallback. */}
+            {sttAvailable && (
+              <button
+                type="button"
+                onClick={handleMicToggle}
+                aria-label={isRecording ? 'Stop recording' : 'Record question'}
+                aria-pressed={isRecording}
+                data-testid="mic-button"
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.9rem',
+                  color: isRecording ? 'var(--accent-bright)' : 'var(--paper)',
+                  background: isRecording ? 'rgba(158,27,27,0.18)' : 'transparent',
+                  border: `1px solid ${isRecording ? 'var(--accent-bright)' : 'var(--line-strong)'}`,
+                  padding: '0 1rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {isRecording ? '● Rec' : '🎤'}
+              </button>
+            )}
             <button
               type="submit"
               disabled={isLoading}

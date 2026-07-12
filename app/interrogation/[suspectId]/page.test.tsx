@@ -11,6 +11,21 @@ vi.mock('../../../lib/tts/useSpokenLine.js', () => ({
   useSpokenLine: () => ({ speak: speakMock, isSpeaking: false, ttsAvailable: true })
 }))
 
+// Mock the mic hook so the push-to-talk button drives a deterministic
+// transcript without touching real MediaRecorder / getUserMedia. Tests set the
+// spies' behaviour and the sttAvailable flag before rendering.
+const { micState } = vi.hoisted(() => ({
+  micState: {
+    isRecording: false,
+    sttAvailable: true,
+    start: vi.fn(),
+    stop: vi.fn()
+  }
+}))
+vi.mock('../../../lib/stt/useMicTranscription.js', () => ({
+  useMicTranscription: () => micState
+}))
+
 import InterrogationPage from './page.js'
 
 function stubFetchOnce(responseBody: unknown, ok = true, status = 200) {
@@ -24,6 +39,12 @@ function stubFetchOnce(responseBody: unknown, ok = true, status = 200) {
 beforeEach(() => {
   speakMock.mockReset()
   speakMock.mockResolvedValue(undefined)
+  micState.isRecording = false
+  micState.sttAvailable = true
+  micState.start.mockReset()
+  micState.stop.mockReset()
+  micState.start.mockResolvedValue(undefined)
+  micState.stop.mockResolvedValue(null)
 })
 
 afterEach(() => {
@@ -181,6 +202,42 @@ describe('InterrogationPage', () => {
     await waitFor(() => {
       expect(speakMock).toHaveBeenCalledWith('I never left the platform.', { suspectId: 'mara' })
     })
+  })
+
+  it('populates the question input from the mic transcript when recording stops', async () => {
+    // Simulate a live recording: clicking the button calls stop(), which
+    // resolves the spoken transcript and fills the question field.
+    micState.isRecording = true
+    micState.stop.mockResolvedValue('Where were you at ten?')
+
+    render(<InterrogationPage params={{ suspectId: 'mara' }} />)
+
+    fireEvent.click(screen.getByTestId('mic-button'))
+
+    await waitFor(() => {
+      expect((screen.getByLabelText('Ask a question') as HTMLInputElement).value).toBe(
+        'Where were you at ten?'
+      )
+    })
+    expect(micState.stop).toHaveBeenCalledTimes(1)
+  })
+
+  it('starts recording when the mic button is clicked while idle', async () => {
+    render(<InterrogationPage params={{ suspectId: 'mara' }} />)
+
+    fireEvent.click(screen.getByTestId('mic-button'))
+
+    await waitFor(() => {
+      expect(micState.start).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('hides the mic button when STT is unavailable', () => {
+    micState.sttAvailable = false
+
+    render(<InterrogationPage params={{ suspectId: 'mara' }} />)
+
+    expect(screen.queryByTestId('mic-button')).toBeNull()
   })
 
   it('still renders the transcript when TTS fails', async () => {
