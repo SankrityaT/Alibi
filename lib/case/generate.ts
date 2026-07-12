@@ -156,7 +156,14 @@ export async function generateCase(
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     let caseFile: CaseFile
     try {
-      const reply = await deps.anthropic.createMessage({ system, userMessage, model: 'haiku' })
+      const reply = await deps.anthropic.createMessage({
+        system,
+        userMessage,
+        model: 'haiku',
+        // Bound generation so a wedged subprocess can't hang the loading screen;
+        // on timeout this rejects and handleNewGame drops to the authored case.
+        timeoutMs: 60_000
+      })
       caseFile = parseCaseJson(reply)
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)

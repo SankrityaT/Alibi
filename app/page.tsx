@@ -65,11 +65,17 @@ export default function HomePage() {
     setPhase('loading')
     setBeat(0)
     setError(null)
+    // Hard ceiling so a wedged generation can never leave the loading screen
+    // spinning forever — the server bounds generation to 60s + falls back, so
+    // 120s here is pure backstop before we bail to a retry.
+    const controller = new AbortController()
+    const bailTimer = setTimeout(() => controller.abort(), 120_000)
     try {
       const response = await fetch('/api/new-game', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ difficulty })
+        body: JSON.stringify({ difficulty }),
+        signal: controller.signal
       })
       if (!response.ok) {
         const body = await response.json().catch(() => ({}))
@@ -86,9 +92,16 @@ export default function HomePage() {
       // searchable, so the first interrogation is never empty.
       await waitForMemoriesReady()
       if (!cancelledRef.current) router.push('/brief')
-    } catch {
-      setError('Could not reach the server. Is it running?')
+    } catch (err) {
+      const timedOut = err instanceof DOMException && err.name === 'AbortError'
+      setError(
+        timedOut
+          ? 'The case took too long to assemble. Please try again.'
+          : 'Could not reach the server. Is it running?'
+      )
       setPhase('idle')
+    } finally {
+      clearTimeout(bailTimer)
     }
   }
 

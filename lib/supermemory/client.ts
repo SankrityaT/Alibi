@@ -26,14 +26,25 @@ export class HttpSupermemoryClient implements SupermemoryClient {
   }
 
   private async post<T>(path: string, body: unknown): Promise<T> {
-    const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`
-      },
-      body: JSON.stringify(body)
-    })
+    // Bound every call so a dead/restarting Supermemory can't hang a request
+    // forever (fetch has no default timeout). 25s comfortably covers a healthy
+    // write/search; past that we treat the server as unresponsive.
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 25_000)
+    let response: Response
+    try {
+      response = await this.fetchImpl(`${this.baseUrl}${path}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal
+      })
+    } finally {
+      clearTimeout(timer)
+    }
 
     if (!response.ok) {
       const text = await response.text()

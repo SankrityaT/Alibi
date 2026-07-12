@@ -71,7 +71,14 @@ export async function handleNewGame(
     }
   }
 
-  await seed(caseFile, { supermemory: deps.supermemory })
+  try {
+    await seed(caseFile, { supermemory: deps.supermemory })
+  } catch (err) {
+    // Seeding failed (e.g. Supermemory down or restarting mid-request). Never
+    // hang or 500 over it — set the case active so the UI proceeds; retrieval
+    // may be partial and the player can start a fresh case.
+    console.warn('[new-game] seeding failed:', err instanceof Error ? err.message : err)
+  }
   setActiveCase(caseFile)
 
   return {
