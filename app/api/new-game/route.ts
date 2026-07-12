@@ -1,8 +1,7 @@
 import { HttpSupermemoryClient } from '../../../lib/supermemory/client.js'
 import { NullSupermemoryClient } from '../../../lib/supermemory/nullClient.js'
 import { ClaudeClient } from '../../../lib/anthropic/client.js'
-import { getActiveRegistry } from '../../../lib/case/store.js'
-import { handleInterrogateRequest } from '../../../lib/interrogate/handleInterrogateRequest.js'
+import { handleNewGame } from '../../../lib/case/handleNewGame.js'
 
 function requireEnv(name: string): string {
   const value = process.env[name]
@@ -20,10 +19,10 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  // Memory ON/OFF toggle: when the client sends memoryEnabled: false, swap in a
-  // client that remembers nothing, so the suspect has no recall at all. This is
-  // the demo's proof that the game depends on Supermemory. (The null client also
-  // needs no running server, so "memory off" works even without Supermemory up.)
+  // Honor the Memory ON/OFF toggle here too: with memory off we seed into a
+  // no-op client (nothing is remembered) so the same "prove it needs
+  // Supermemory" demo holds from the very first case, and new-game works even
+  // when no Supermemory server is running.
   const memoryEnabled = !(
     typeof body === 'object' &&
     body !== null &&
@@ -38,11 +37,7 @@ export async function POST(request: Request): Promise<Response> {
     : new NullSupermemoryClient()
   const anthropic = new ClaudeClient()
 
-  // Suspect registry comes from the live active case (seeded by /api/new-game),
-  // falling back to the hand-authored case when no game has been started yet.
-  const suspects = getActiveRegistry()
-
-  const result = await handleInterrogateRequest(body, { supermemory, anthropic, suspects })
+  const result = await handleNewGame(body, { supermemory, anthropic })
 
   return Response.json(result.body, { status: result.status })
 }
