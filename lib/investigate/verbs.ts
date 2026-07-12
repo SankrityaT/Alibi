@@ -117,9 +117,21 @@ export async function runVerb(input: VerbInput, deps: VerbDeps): Promise<VerbRes
     return { fact, evidenceId: written.id, retrieved: [] }
   }
 
-  // Pull verb: search the shared world evidence, scoped by kind.
+  // Pull verb: search the shared world evidence, scoped by kind. Supermemory
+  // rejects an empty search query (400), so when the detective pulls a source
+  // without typing a detail, fall back to a query describing that source — a
+  // bare "CCTV" click should still surface the camera evidence.
+  const defaultQueries: Record<string, string> = {
+    cctv: 'camera footage location time',
+    phone: 'phone call records number',
+    forensics: 'forensic evidence findings',
+    financial: 'financial records money motive',
+    background: 'background history relationship',
+    object: 'physical object found at the scene'
+  }
+  const q = input.query.trim() || defaultQueries[input.kind] || 'evidence'
   const searchResult = await deps.supermemory.search({
-    q: input.query,
+    q,
     containerTag: WORLD_CONTAINER_TAG,
     searchMode: 'hybrid',
     // Low threshold so broad investigative queries still surface evidence; the
