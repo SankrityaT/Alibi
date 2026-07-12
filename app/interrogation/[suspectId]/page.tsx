@@ -5,7 +5,7 @@ import { DialogueBox } from '../../../components/interrogation/DialogueBox.js'
 import { MemoryTracePanel } from '../../../components/interrogation/MemoryTracePanel.js'
 import { EvidenceActions } from '../../../components/investigation/EvidenceActions.js'
 import { AccusePanel } from '../../../components/case/AccusePanel.js'
-import { portraitForSuspect } from '../../../lib/station/portraits.js'
+import { portraitForSuspect, INVESTIGATOR_SPRITE } from '../../../lib/station/portraits.js'
 import { useSpokenLine } from '../../../lib/tts/useSpokenLine.js'
 import { useMicTranscription } from '../../../lib/stt/useMicTranscription.js'
 
@@ -196,8 +196,16 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
           >
             {turns.map((turn, i) => (
               <div key={turn.id}>
-                <p className="dialogue-scene__you">You: {turn.question}</p>
-                <div className="dialogue-scene__who">{name}</div>
+                <p className="dialogue-scene__you">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img className="dlg-avatar" src={INVESTIGATOR_SPRITE} alt="" aria-hidden="true" />
+                  You: {turn.question}
+                </p>
+                <div className="dialogue-scene__who">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img className="dlg-avatar" src={portraitForSuspect(params.suspectId)} alt="" aria-hidden="true" />
+                  {name}
+                </div>
                 {i === turns.length - 1 ? (
                   <DialogueBox text={turn.answer} />
                 ) : (

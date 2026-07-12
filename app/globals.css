@@ -522,3 +522,21 @@ input {
   98% { opacity: 1; }
   99% { opacity: 0.85; }
 }
+
+/* Small speaker avatar chips in the dialogue (officer for YOU, suspect for them) */
+.dlg-avatar {
+  width: 22px;
+  height: 22px;
+  image-rendering: pixelated;
+  vertical-align: middle;
+  margin-right: 7px;
+  border: 1px solid var(--line-strong);
+  background: #0b0a08;
+}
+.dialogue-box-static {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--paper-dim);
+  white-space: pre-wrap;
+}

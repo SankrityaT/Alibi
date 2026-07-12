@@ -1,15 +1,4 @@
-Sprites in this folder are from Kenney's asset packs, all licensed
-CC0 1.0 Universal (public domain, no attribution required). Credited here
-voluntarily.
-
-- floor.png, detective.png
-  Kenney "Tiny Dungeon" (https://kenney.nl/assets/tiny-dungeon)
-
-- wall.png, desk.png, shelf.png, corkboard.png  (room-interior furniture tiles)
-  Kenney "Roguelike/RPG Indoors" (https://kenney.nl/assets/roguelike-indoors)
-
-- portraits/suspect-1.png … suspect-8.png  (suspect portraits)
-  Kenney character tiles (https://kenney.nl/assets/tiny-dungeon)
-
-All CC0 tiles above are used as placeholder pixel art and may be swapped for
-final art later; the license imposes no obligation.
+Sprites here are from Kenney's asset packs (https://kenney.nl), all CC0 1.0
+Universal (public domain, no attribution required — credited voluntarily):
+  - Tiny Dungeon  (character portraits: the officer/investigator + suspects)
+  - Roguelike/RPG, Roguelike Modern City  (tiles / scene dressing)
