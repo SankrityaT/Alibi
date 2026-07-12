@@ -1,6 +1,19 @@
 import type { TtsClient } from './types.js'
 import { TtsUnavailableError } from './types.js'
 import { voiceForSuspect } from './voices.js'
+import { getActiveCase } from '../case/store.js'
+
+// Prefer the voice deliberately cast for this suspect in the active case
+// (suspect.ttsVoice), so each character keeps a consistent, authored voice.
+// Falls back to the deterministic hash when there's no active case or the
+// suspect carries no authored voice — matching the pre-case behaviour.
+function voiceForActiveSuspect(suspectId: string): string {
+  const suspect = getActiveCase()?.suspects.find((s) => s.suspectId === suspectId)
+  if (suspect?.ttsVoice && suspect.ttsVoice.length > 0) {
+    return suspect.ttsVoice
+  }
+  return voiceForSuspect(suspectId)
+}
 
 export interface TtsRequestDeps {
   tts: TtsClient
@@ -44,7 +57,7 @@ export async function handleTtsRequest(
   if (explicitVoice) {
     voice = explicitVoice
   } else if (typeof candidate.suspectId === 'string' && candidate.suspectId.length > 0) {
-    voice = voiceForSuspect(candidate.suspectId)
+    voice = voiceForActiveSuspect(candidate.suspectId)
   } else {
     return { status: 400, body: { error: 'Missing "voice" or "suspectId"' } }
   }

@@ -1,6 +1,6 @@
 import type { SupermemoryClient } from '../supermemory/types.js'
 import type { AnthropicClientLike } from '../anthropic/types.js'
-import { DETECTIVE_CONTAINER_TAG } from '../case/types.js'
+import { DETECTIVE_CONTAINER_TAG, WORLD_CONTAINER_TAG } from '../case/types.js'
 import { getActiveCase } from '../case/store.js'
 
 // The Case Notebook is the load-bearing "why Supermemory" proof. A single
@@ -37,7 +37,12 @@ export interface NotebookDeps {
 export function defaultNotebookContainers(): string[] {
   const activeCase = getActiveCase()
   const suspectTags = activeCase ? activeCase.suspects.map((suspect) => suspect.containerTag) : []
-  return [DETECTIVE_CONTAINER_TAG, ...suspectTags]
+  // The world-evidence container is included so the Notebook can synthesize
+  // across ALL dug-up evidence — including the kinds no pull verb surfaces
+  // directly (financial/background/object). Without it the decisive motive clue
+  // (e.g. a suspect's gambling debt) is seeded but unreachable, and the case
+  // isn't solvable.
+  return [DETECTIVE_CONTAINER_TAG, WORLD_CONTAINER_TAG, ...suspectTags]
 }
 
 function capitalize(value: string): string {
@@ -63,6 +68,14 @@ export function citationSource(
       return `Detective notebook (${kind})`
     }
     return 'Detective notebook'
+  }
+
+  if (containerTag === WORLD_CONTAINER_TAG) {
+    const kind = metadata?.kind
+    if (typeof kind === 'string' && kind.length > 0) {
+      return `World evidence (${kind})`
+    }
+    return 'World evidence'
   }
 
   if (containerTag.startsWith('suspect-')) {

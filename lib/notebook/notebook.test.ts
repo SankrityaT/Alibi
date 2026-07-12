@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { FakeSupermemoryClient } from '../supermemory/fakeClient.js'
 import { FakeAnthropicClient } from '../anthropic/fakeClient.js'
 import type { SearchParams, SearchResult } from '../supermemory/types.js'
-import { DETECTIVE_CONTAINER_TAG } from '../case/types.js'
-import { askNotebook } from './notebook.js'
+import { DETECTIVE_CONTAINER_TAG, WORLD_CONTAINER_TAG } from '../case/types.js'
+import { setActiveCase } from '../case/store.js'
+import { fallbackCase } from '../../content/cases/fallbackCase.js'
+import { askNotebook, defaultNotebookContainers } from './notebook.js'
 
 // A FakeSupermemoryClient that records every containerTag it was asked to
 // search, so we can prove askNotebook fans out across every provided container.
@@ -104,5 +106,21 @@ describe('askNotebook', () => {
 
     expect(result.citations).toEqual([])
     expect(result.answer.trim().length).toBeGreaterThan(0)
+  })
+})
+
+describe('defaultNotebookContainers', () => {
+  it('includes detective, world-evidence, and every active suspect container', () => {
+    setActiveCase(fallbackCase)
+    const containers = defaultNotebookContainers()
+
+    // World-evidence must be searched so dug-up clues no verb surfaces directly
+    // (financial motive, background) are still reachable — the case is only
+    // solvable if the Notebook can reach them.
+    expect(containers).toContain(DETECTIVE_CONTAINER_TAG)
+    expect(containers).toContain(WORLD_CONTAINER_TAG)
+    for (const suspect of fallbackCase.suspects) {
+      expect(containers).toContain(suspect.containerTag)
+    }
   })
 })

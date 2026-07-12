@@ -40,11 +40,23 @@ export function AccusePanel({ suspects, movesUsed }: AccusePanelProps) {
     setIsSubmitting(true)
     setError(null)
 
+    // How long the solve took, from the case-start stamp set when the game
+    // began. Omitted when unavailable so the rating simply skips the time bonus.
+    let elapsedSeconds: number | undefined
+    try {
+      const started = Number(sessionStorage.getItem('alibi:caseStartedAt'))
+      if (Number.isFinite(started) && started > 0) {
+        elapsedSeconds = Math.max(0, Math.round((Date.now() - started) / 1000))
+      }
+    } catch {
+      // sessionStorage unavailable — no time signal, that's fine.
+    }
+
     try {
       const response = await fetch('/api/accuse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accusedCulpritId, accusedPlantedClaim, movesUsed })
+        body: JSON.stringify({ accusedCulpritId, accusedPlantedClaim, movesUsed, elapsedSeconds })
       })
       const body = (await response.json()) as AccuseResponse
 

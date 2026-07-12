@@ -46,16 +46,24 @@ export function computeRating(trail: CaseMoveTrail): DetectiveRating {
   const basePoints = correct ? BASE_POINTS[trail.difficulty] : 0
 
   if (!correct) {
+    // A wrong accusation is always a Rookie result, but call out when the
+    // culprit's red herring is specifically what got you — the decoy did its
+    // job. (fooledByRedHerring only meaningfully occurs here: a correct
+    // accusation names the culprit, who is never the red herring.)
     return {
       correct: false,
       basePoints: 0,
       rank: 'Rookie',
-      summary:
-        'Wrong call, detective. The real culprit walked free — no points on the board. Back to the beat.'
+      summary: trail.fooledByRedHerring
+        ? 'Wrong call. The red herring played you perfectly — the real culprit walked free. Back to the beat.'
+        : 'Wrong call, detective. The real culprit walked free — no points on the board. Back to the beat.'
     }
   }
 
-  // Correct culprit: start at Detective (index 1), then adjust by craft.
+  // Correct culprit: start at Detective (index 1), then adjust by craft. The
+  // red-herring penalty is retained as a general property of this pure function
+  // (a caller could pass that combination); the reachable HTTP path expresses
+  // "the red herring got you" through the wrong-accusation summary above.
   let score = 1
   if (trail.identifiedPlantedMemory) score += 1
   if (trail.movesUsed <= EFFICIENT_MOVE_LIMIT) score += 1

@@ -190,6 +190,15 @@ export const fallbackCase: CaseFile = {
       summary:
         'Bank records show Mara Okafor owes a large gambling debt with a payment deadline days after the gala.',
       implicatesSuspectIds: ['mara']
+    },
+    {
+      id: 'ev-phone-log',
+      kind: 'phone',
+      timeWindow: '21:47',
+      summary:
+        'Cell records show Mara made a 40-second call to an unregistered burner number at 21:47, minutes before the vault was opened.',
+      implicatesSuspectIds: ['mara'],
+      contradictsClaim: 'I never used my phone that night.'
     }
   ],
   culpritId: 'mara',

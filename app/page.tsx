@@ -34,6 +34,13 @@ export default function HomePage() {
         setStarting(null)
         return
       }
+      // Stamp the case start so the accusation can report how long the solve
+      // took — the Detective Rating rewards a fast, decisive close.
+      try {
+        sessionStorage.setItem('alibi:caseStartedAt', String(Date.now()))
+      } catch {
+        // sessionStorage unavailable (private mode etc.) — time bonus is optional.
+      }
       router.push('/station')
     } catch {
       setError('Could not reach the server. Is it running?')

@@ -34,7 +34,7 @@ describe('runVerb', () => {
     expect(verbMemories[0].content).toBe(result.fact)
   })
 
-  it('cctv: scopes retrieval to the requested kind', async () => {
+  it('phone: scopes retrieval to the requested kind', async () => {
     const supermemory = new FakeSupermemoryClient()
     const anthropic = new FakeAnthropicClient(summarizingResponder())
     await seedCase(fallbackCase, { supermemory })
@@ -44,9 +44,12 @@ describe('runVerb', () => {
       { supermemory, anthropic }
     )
 
-    // fallbackCase has no 'phone' evidence, so nothing is retrieved but the verb
-    // still produces a (no-evidence) fact and records it.
-    expect(result.retrieved).toHaveLength(0)
+    // Only phone-kind world evidence is pulled — the burner-call record — and
+    // not the cctv/forensics/etc. evidence sharing the world container.
+    expect(result.retrieved.length).toBeGreaterThan(0)
+    const combined = result.retrieved.map((r) => r.content).join(' ')
+    expect(combined).toContain('burner')
+    expect(combined).not.toContain('Atrium camera')
     expect(typeof result.fact).toBe('string')
   })
 
