@@ -48,18 +48,27 @@ export default function HomePage() {
     return () => clearInterval(id)
   }, [phase])
 
-  async function waitForMemoriesReady(maxMs = 45000) {
+  async function waitForMemoriesReady(maxMs = 20000) {
     const deadline = Date.now() + maxMs
-    // Poll the readiness probe; fail-open so we never hang past the deadline.
+    // Poll the readiness probe, but bound EACH poll so a slow/hung request can
+    // never stall the loop past the deadline — the case opens either way.
     while (Date.now() < deadline && !cancelledRef.current) {
+      const ctl = new AbortController()
+      const perPoll = setTimeout(() => ctl.abort(), 4000)
       try {
-        const r = await fetch(`/api/case-ready?t=${Date.now()}`, { cache: 'no-store' })
+        const r = await fetch(`/api/case-ready?t=${Date.now()}`, {
+          cache: 'no-store',
+          signal: ctl.signal
+        })
         const body = await r.json()
         if (body?.ready) return
       } catch {
-        return
+        // This poll timed out or errored — keep looping until the deadline
+        // rather than hanging; do not bail the whole load on one bad poll.
+      } finally {
+        clearTimeout(perPoll)
       }
-      await sleep(1800)
+      await sleep(1200)
     }
   }
 

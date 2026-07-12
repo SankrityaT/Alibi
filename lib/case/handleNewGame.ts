@@ -1,6 +1,7 @@
 import type { AnthropicClientLike } from '../anthropic/types.js'
 import type { SupermemoryClient } from '../supermemory/types.js'
 import type { CaseFile, Difficulty } from './types.js'
+import { suspectContainerTag } from './types.js'
 import { generateCase } from './generate.js'
 import { seedCase } from './seed.js'
 import { validateCase } from './validate.js'
@@ -81,16 +82,42 @@ export async function handleNewGame(
   }
 
   const source = wantsGeneration ? 'generated' : caseFile === fallback ? 'fallback' : 'curated'
-  try {
-    const seedResult = await seed(caseFile, { supermemory: deps.supermemory })
-    console.log(
-      `[new-game] ${difficulty} "${caseFile.title}" (${source}) — seeded ${seedResult.memoriesWritten} facts across ${seedResult.suspectsSeeded} suspects; extraction runs async`
-    )
-  } catch (err) {
-    // Seeding failed (e.g. Supermemory down or restarting mid-request). Never
-    // hang or 500 over it — set the case active so the UI proceeds; retrieval
-    // may be partial and the player can start a fresh case.
-    console.warn(`[new-game] ${difficulty} "${caseFile.title}" — seeding FAILED:`, err instanceof Error ? err.message : err)
+
+  // Skip re-seeding when this case's memories are already in Supermemory
+  // (curated cases are pre-seeded and persist). Re-writing the same facts would
+  // trigger a fresh ~minute of LLM re-extraction and briefly make the suspect's
+  // memories unavailable — which is exactly what stalls the loading screen on a
+  // replay. Probing the first suspect's container makes replays instant.
+  let alreadySeeded = false
+  const firstSuspect = caseFile.suspects[0]
+  if (firstSuspect) {
+    try {
+      const probe = await deps.supermemory.search({
+        q: 'memory',
+        containerTag: suspectContainerTag(firstSuspect.suspectId),
+        threshold: 0,
+        limit: 1
+      })
+      alreadySeeded = probe.results.length > 0
+    } catch {
+      // Probe failed (e.g. Supermemory unreachable) — fall through and seed.
+    }
+  }
+
+  if (alreadySeeded) {
+    console.log(`[new-game] ${difficulty} "${caseFile.title}" (${source}) — already seeded, skipping (instant)`)
+  } else {
+    try {
+      const seedResult = await seed(caseFile, { supermemory: deps.supermemory })
+      console.log(
+        `[new-game] ${difficulty} "${caseFile.title}" (${source}) — seeded ${seedResult.memoriesWritten} facts across ${seedResult.suspectsSeeded} suspects; extraction runs async`
+      )
+    } catch (err) {
+      // Seeding failed (e.g. Supermemory down or restarting mid-request). Never
+      // hang or 500 over it — set the case active so the UI proceeds; retrieval
+      // may be partial and the player can start a fresh case.
+      console.warn(`[new-game] ${difficulty} "${caseFile.title}" — seeding FAILED:`, err instanceof Error ? err.message : err)
+    }
   }
   setActiveCase(caseFile)
 
