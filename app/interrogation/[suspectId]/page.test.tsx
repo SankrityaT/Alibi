@@ -264,6 +264,36 @@ describe('InterrogationPage', () => {
     )
   })
 
+  it('renders the accusation panel with a full suspect roster and a moves counter', () => {
+    render(<InterrogationPage params={{ suspectId: 'mara' }} />)
+
+    // The panel is always present so the player can close the case at any time.
+    expect(screen.getByTestId('accuse-panel')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Accuse/i })).toBeTruthy()
+    // Roster comes from the active demo case, so more than one suspect is listed.
+    expect(screen.getAllByRole('option').length).toBeGreaterThan(1)
+    // No moves made yet.
+    expect(screen.getByTestId('accuse-panel').textContent).toContain('0 moves used')
+  })
+
+  it('counts each interrogation turn as a move in the accusation panel', async () => {
+    const fetchMock = stubFetchOnce({
+      answer: 'I was at the desk.',
+      query: 'q',
+      retrievedMemories: []
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<InterrogationPage params={{ suspectId: 'mara' }} />)
+
+    fireEvent.change(screen.getByLabelText('Ask a question'), { target: { value: 'Where?' } })
+    fireEvent.submit(screen.getByLabelText('Ask a question').closest('form') as HTMLFormElement)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('accuse-panel').textContent).toContain('1 moves used')
+    })
+  })
+
   it('still renders the transcript when TTS fails', async () => {
     // speak() rejecting must not break rendering the spoken line as text.
     speakMock.mockRejectedValue(new Error('TTS unavailable'))

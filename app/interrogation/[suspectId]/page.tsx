@@ -4,8 +4,10 @@ import { useState, type FormEvent } from 'react'
 import { DialogueBox } from '../../../components/interrogation/DialogueBox.js'
 import { MemoryTracePanel } from '../../../components/interrogation/MemoryTracePanel.js'
 import { EvidenceActions } from '../../../components/investigation/EvidenceActions.js'
+import { AccusePanel } from '../../../components/case/AccusePanel.js'
 import { useSpokenLine } from '../../../lib/tts/useSpokenLine.js'
 import { useMicTranscription } from '../../../lib/stt/useMicTranscription.js'
+import { fallbackCase } from '../../../content/cases/fallbackCase.js'
 
 interface RetrievedMemory {
   id: string
@@ -106,6 +108,12 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
   }
 
   const latestTurn = turns.length > 0 ? turns[turns.length - 1] : null
+  // Every question and every investigation verb counts as a move; the rating
+  // rewards closing the case efficiently. The suspect roster for the accusation
+  // comes from the active demo case (the fallback) so the panel always lists a
+  // full line-up even though this page is scoped to one suspect.
+  const movesUsed = turns.length + evidenceFacts.length
+  const roster = fallbackCase.suspects.map((s) => ({ suspectId: s.suspectId, name: s.name }))
 
   return (
     <main
@@ -347,6 +355,8 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
         {latestTurn && (
           <MemoryTracePanel query={latestTurn.query} retrievedMemories={latestTurn.retrievedMemories} />
         )}
+
+        <AccusePanel suspects={roster} movesUsed={movesUsed} />
       </div>
     </main>
   )
