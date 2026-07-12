@@ -3,19 +3,27 @@ import type { CaseFile, Difficulty } from './types.js'
 import { caseToRegistry } from './toRegistry.js'
 import { fallbackCase } from '../../content/cases/fallbackCase.js'
 
-// In-memory active-case store. A single game is "live" per server process: the
-// new-game endpoint seeds a CaseFile and sets it active here, and the
-// interrogate route reads the derived suspect registry from it. Deliberately
-// module-level (not a DB) — the demo runs one case at a time and needs no
-// persistence across restarts.
-let activeCase: CaseFile | null = null
+// Active-case store. A single game is "live" per server process: the new-game
+// endpoint seeds a CaseFile and sets it active here, and the interrogate /
+// notebook / accuse / case routes read from it.
+//
+// The state lives on globalThis, NOT a module-level `let`. In Next.js each API
+// route is bundled into its own module graph, so a plain module-level variable
+// set by /api/new-game is invisible to /api/interrogate — they'd each see their
+// own copy (and fall back to the authored case). globalThis is the single shared
+// object across every route in the one server process, so the active case set by
+// one route is seen by all of them. (Same reason Prisma/DB singletons use it.)
+interface AlibiGlobal {
+  __alibiActiveCase?: CaseFile | null
+}
+const alibiGlobal = globalThis as unknown as AlibiGlobal
 
 export function setActiveCase(caseFile: CaseFile): void {
-  activeCase = caseFile
+  alibiGlobal.__alibiActiveCase = caseFile
 }
 
 export function getActiveCase(): CaseFile | null {
-  return activeCase
+  return alibiGlobal.__alibiActiveCase ?? null
 }
 
 // Suspect registry the interrogate route consumes. Falls back to the
@@ -23,7 +31,7 @@ export function getActiveCase(): CaseFile | null {
 // request before /api/new-game still resolves a known suspect instead of 404ing
 // on an empty registry.
 export function getActiveRegistry(): Record<string, CharacterSheet> {
-  return caseToRegistry(activeCase ?? fallbackCase)
+  return caseToRegistry(getActiveCase() ?? fallbackCase)
 }
 
 export interface PublicSuspect {
@@ -50,9 +58,10 @@ export interface PublicCase {
  * `started: false` so the UI can prompt the player to begin one.
  */
 export function getActivePublicCase(): PublicCase {
-  const source = activeCase ?? fallbackCase
+  const active = getActiveCase()
+  const source = active ?? fallbackCase
   return {
-    started: activeCase !== null,
+    started: active !== null,
     caseId: source.id,
     title: source.title,
     synopsis: source.synopsis,

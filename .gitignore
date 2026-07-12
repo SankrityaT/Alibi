@@ -4,3 +4,4 @@ dist/
 .next/
 .playwright-mcp/
 .DS_Store
+.supermemory/
