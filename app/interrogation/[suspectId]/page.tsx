@@ -57,7 +57,7 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
 
   useEffect(() => {
     let cancelled = false
-    fetch('/api/case')
+    fetch(`/api/case?t=${Date.now()}`, { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!cancelled && data && Array.isArray(data.suspects)) {

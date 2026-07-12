@@ -25,7 +25,7 @@ describe('HomePage', () => {
     expect(screen.getByRole('button', { name: /Hard/ })).toBeTruthy()
   })
 
-  it('starts a case at the chosen difficulty then navigates to the station', async () => {
+  it('starts a case at the chosen difficulty then navigates to the case brief', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) })
     vi.stubGlobal('fetch', fetchMock)
 
@@ -33,7 +33,7 @@ describe('HomePage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Medium/ }))
 
     await waitFor(() => {
-      expect(pushMock).toHaveBeenCalledWith('/station')
+      expect(pushMock).toHaveBeenCalledWith('/brief')
     })
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/new-game',

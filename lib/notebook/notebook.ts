@@ -134,7 +134,11 @@ export async function askNotebook(
     const searchResult = await deps.supermemory.search({
       q: query,
       containerTag,
-      searchMode: 'hybrid'
+      searchMode: 'hybrid',
+      // Match the interrogation retrieval: surface top memories per container
+      // instead of dropping everything below the default relevance cutoff.
+      threshold: 0.3,
+      limit: 6
     })
     for (const item of searchResult.results) {
       citations.push({

@@ -41,7 +41,7 @@ export default function HomePage() {
       } catch {
         // sessionStorage unavailable (private mode etc.) — time bonus is optional.
       }
-      router.push('/station')
+      router.push('/brief')
     } catch {
       setError('Could not reach the server. Is it running?')
       setStarting(null)

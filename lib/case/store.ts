@@ -45,6 +45,7 @@ export interface PublicCase {
   caseId: string
   title: string
   synopsis: string
+  crime: string
   difficulty: Difficulty
   suspects: PublicSuspect[]
 }
@@ -65,6 +66,7 @@ export function getActivePublicCase(): PublicCase {
     caseId: source.id,
     title: source.title,
     synopsis: source.synopsis,
+    crime: source.crime,
     difficulty: source.difficulty,
     suspects: source.suspects.map((s) => ({
       suspectId: s.suspectId,

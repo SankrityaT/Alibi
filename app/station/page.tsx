@@ -21,7 +21,7 @@ export default function StationPage() {
 
   useEffect(() => {
     let cancelled = false
-    fetch('/api/case')
+    fetch(`/api/case?t=${Date.now()}`, { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!cancelled && data && Array.isArray(data.suspects)) {
@@ -179,6 +179,23 @@ export default function StationPage() {
           }}
         >
           Case Board / Notebook
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push('/brief')}
+          style={{
+            fontFamily: 'var(--font-mono)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.12em',
+            fontSize: '0.75rem',
+            padding: '0.7rem 1.1rem',
+            cursor: 'pointer',
+            background: 'var(--bg-panel)',
+            color: 'var(--paper-dim)',
+            border: '1px solid var(--line-strong)'
+          }}
+        >
+          Re-read Case File
         </button>
       </div>
 

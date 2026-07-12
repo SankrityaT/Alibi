@@ -121,7 +121,11 @@ export async function runVerb(input: VerbInput, deps: VerbDeps): Promise<VerbRes
   const searchResult = await deps.supermemory.search({
     q: input.query,
     containerTag: WORLD_CONTAINER_TAG,
-    searchMode: 'hybrid'
+    searchMode: 'hybrid',
+    // Low threshold so broad investigative queries still surface evidence; the
+    // higher limit leaves candidates to post-filter by kind below.
+    threshold: 0.3,
+    limit: 12
   })
 
   const retrieved: RetrievedMemory[] = searchResult.results

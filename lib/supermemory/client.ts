@@ -48,7 +48,25 @@ export class HttpSupermemoryClient implements SupermemoryClient {
   }
 
   async search(params: SearchParams): Promise<SearchResult> {
-    return this.post<SearchResult>('/v4/search', params)
+    const raw = await this.post<{
+      results?: Array<{
+        id: string
+        memory?: string
+        content?: string
+        metadata?: Record<string, unknown>
+      }>
+    }>('/v4/search', params)
+    // Supermemory's /v4/search returns each hit's text under `memory`, not
+    // `content`. Casting the raw payload straight to SearchResult left every
+    // item's `content` undefined, so suspects retrieved memories by count but
+    // received blank text — ungrounded answers. Normalize to `content` here so
+    // every caller (respond, verbs, notebook) reads real memory text.
+    const results = (raw.results ?? []).map((item) => ({
+      id: item.id,
+      content: item.memory ?? item.content ?? '',
+      metadata: item.metadata
+    }))
+    return { results }
   }
 
   async getProfile(params: ProfileParams): Promise<ProfileResult> {

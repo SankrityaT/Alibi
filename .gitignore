@@ -5,3 +5,6 @@ dist/
 .playwright-mcp/
 .DS_Store
 .supermemory/
+
+# local playwright screenshots
+brief-*.png

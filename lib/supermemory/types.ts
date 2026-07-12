@@ -15,6 +15,12 @@ export interface SearchParams {
   containerTag: string
   limit?: number
   searchMode?: 'hybrid'
+  // Supermemory's default relevance cutoff (~0.55) is high enough that generic
+  // interrogation questions ("what do you remember about that night?") score
+  // below it against the specific stored facts and retrieve nothing — the
+  // suspect then claims to remember nothing. A low threshold surfaces the
+  // top-ranked memories regardless, which is what the game wants.
+  threshold?: number
 }
 
 export interface SearchResultItem {
