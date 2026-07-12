@@ -401,17 +401,34 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
 
       {/* --- Right-side tool dock --- */}
       <div className="sidetabs">
-        <button type="button" className="sidetab" onClick={() => setPanel(panel === 'evidence' ? null : 'evidence')}>
-          🔎 Evidence
+        <span className="sidetabs__title">Case Tools</span>
+        <button
+          type="button"
+          className={`sidetab${panel === 'evidence' ? ' sidetab--active' : ''}`}
+          onClick={() => setPanel(panel === 'evidence' ? null : 'evidence')}
+        >
+          <span className="sidetab__icon" aria-hidden="true">🔎</span> Evidence
         </button>
-        <button type="button" className="sidetab sidetab--accent" onClick={() => setPanel(panel === 'memory' ? null : 'memory')}>
-          🧠 Memory
+        <button
+          type="button"
+          className={`sidetab${panel === 'memory' ? ' sidetab--active' : ''}`}
+          onClick={() => setPanel(panel === 'memory' ? null : 'memory')}
+        >
+          <span className="sidetab__icon" aria-hidden="true">🧠</span> Memory
         </button>
-        <button type="button" className="sidetab" onClick={() => setPanel(panel === 'notebook' ? null : 'notebook')}>
-          📓 Notebook
+        <button
+          type="button"
+          className={`sidetab${panel === 'notebook' ? ' sidetab--active' : ''}`}
+          onClick={() => setPanel(panel === 'notebook' ? null : 'notebook')}
+        >
+          <span className="sidetab__icon" aria-hidden="true">📓</span> Notebook
         </button>
-        <button type="button" className="sidetab sidetab--danger" onClick={() => setPanel(panel === 'accuse' ? null : 'accuse')}>
-          ⚖ Accusation
+        <button
+          type="button"
+          className={`sidetab sidetab--danger${panel === 'accuse' ? ' sidetab--active' : ''}`}
+          onClick={() => setPanel(panel === 'accuse' ? null : 'accuse')}
+        >
+          <span className="sidetab__icon" aria-hidden="true">⚖</span> Accusation
         </button>
       </div>
 
