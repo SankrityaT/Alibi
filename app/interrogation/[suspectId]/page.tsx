@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { DialogueBox } from '../../../components/interrogation/DialogueBox.js'
 import { MemoryTracePanel } from '../../../components/interrogation/MemoryTracePanel.js'
 import { EvidenceActions } from '../../../components/investigation/EvidenceActions.js'
@@ -36,28 +36,23 @@ function displayName(suspectId: string): string {
   return suspectId.charAt(0).toUpperCase() + suspectId.slice(1)
 }
 
+type PanelId = 'evidence' | 'memory' | 'accuse' | null
+
 export default function InterrogationPage({ params }: InterrogationPageProps) {
   const [question, setQuestion] = useState('')
   const [turns, setTurns] = useState<Turn[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [memoryEnabled, setMemoryEnabled] = useState(true)
-  // Full suspect line-up for the accusation panel, fetched from the server's
-  // public case view. We deliberately do NOT import the case object here — it
-  // carries the solution, and a 'use client' import would ship the culprit to
-  // the browser bundle.
   const [roster, setRoster] = useState<{ suspectId: string; name: string }[]>([])
-  // Facts surfaced by the non-dialogue investigation verbs (CCTV/phone/forensics
-  // pulls and evidence presented to the suspect). Pull-verb facts are also
-  // written into the detective's memory server-side for the notebook and rating;
-  // this local log just gives the player immediate feedback.
   const [evidenceFacts, setEvidenceFacts] = useState<string[]>([])
-  // Speaks each new suspect answer aloud in that suspect's voice. Degrades to
-  // silence (ttsAvailable=false) when no local Kokoro server is running.
+  const [panel, setPanel] = useState<PanelId>(null)
+  // Drives the suspect's "speaking" animation for a beat after each answer,
+  // even when TTS is off, so the character visibly reacts.
+  const [speakingViz, setSpeakingViz] = useState(false)
+  const transcriptEndRef = useRef<HTMLDivElement>(null)
+
   const { speak, isSpeaking, ttsAvailable } = useSpokenLine()
-  // Push-to-talk mic: the player may optionally speak their question. A resolved
-  // transcript is dropped into the question field; on any failure the hook
-  // flips sttAvailable=false and the button hides, so typing stays the fallback.
   const { isRecording, sttAvailable, start: startMic, stop: stopMic } = useMicTranscription()
 
   useEffect(() => {
@@ -79,6 +74,11 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    // Optional-call: jsdom (tests) doesn't implement scrollIntoView.
+    transcriptEndRef.current?.scrollIntoView?.({ behavior: 'smooth' })
+  }, [turns])
 
   async function handleMicToggle() {
     if (isRecording) {
@@ -121,9 +121,8 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
         }
       ])
       setQuestion('')
-      // Speak the suspect's line. The transcript shows the exact same text, so
-      // a TTS failure never blocks reading — speak() resolves on its own and we
-      // still guard against any rejection.
+      setSpeakingViz(true)
+      setTimeout(() => setSpeakingViz(false), 2600)
       void speak(result.answer, { suspectId: params.suspectId }).catch(() => {})
     } catch {
       setError('Could not reach the server. Is it running?')
@@ -133,277 +132,211 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
   }
 
   const latestTurn = turns.length > 0 ? turns[turns.length - 1] : null
-  // Every question and every investigation verb counts as a move; the rating
-  // rewards closing the case efficiently. The suspect roster for the accusation
-  // comes from the active demo case (the fallback) so the panel always lists a
-  // full line-up even though this page is scoped to one suspect.
   const movesUsed = turns.length + evidenceFacts.length
+  const name = displayName(params.suspectId)
+  const speaking = speakingViz || isSpeaking
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        justifyContent: 'center',
-        padding: '3rem 1.5rem',
-        background:
-          'radial-gradient(circle at 50% 0%, rgba(212,149,46,0.10) 0%, transparent 45%), radial-gradient(ellipse at 50% 15%, #1a140c 0%, #0b0a08 70%)'
-      }}
-    >
-      <div style={{ width: '100%', maxWidth: 760, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        <header style={{ textAlign: 'center' }}>
-          <span className="uppercase-label" style={{ display: 'block' }}>
-            Interrogation Room 1
-          </span>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '1rem',
-              marginTop: '0.25rem'
-            }}
+    <main className="scene">
+      {/* --- Room --- */}
+      <div className="scene__wall">
+        <div className="scene__mirror" />
+      </div>
+      <div className="scene__lamp" />
+      <div className="scene__cone" />
+      <div className="scene__table" />
+      <div className="scene__tablespot" />
+
+      <div className={`suspect${speaking ? ' suspect--speaking' : ''}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          className="suspect__portrait"
+          src={portraitForSuspect(params.suspectId)}
+          alt={`Portrait of ${name}`}
+        />
+        <span className="suspect__plate">{name}</span>
+      </div>
+
+      <div className="investigator" aria-hidden="true" />
+      <div className="scene__grain-scan" aria-hidden="true" />
+      <div className="scene__vignette" aria-hidden="true" />
+
+      {/* --- Top HUD --- */}
+      <div className="hud">
+        <a className="hud__btn" href="/station">
+          &larr; Station
+        </a>
+        <span className="uppercase-label">Interrogation Room &mdash; {name}</span>
+        <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <span
+            data-testid="tts-indicator"
+            aria-live="polite"
+            className="uppercase-label"
+            style={{ color: !ttsAvailable ? 'var(--paper-faint)' : isSpeaking ? 'var(--accent-bright)' : 'var(--paper-dim)' }}
           >
-            {/* Consistent pixel-art portrait for this suspect. */}
-            <img
-              src={portraitForSuspect(params.suspectId)}
-              alt={`Portrait of ${displayName(params.suspectId)}`}
-              width={64}
-              height={64}
-              style={{
-                imageRendering: 'pixelated',
-                border: '2px solid var(--accent)',
-                background: 'var(--bg-panel)'
-              }}
-            />
-            <h1
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: 'clamp(2.5rem, 8vw, 4rem)',
-                letterSpacing: '0.05em',
-                margin: 0,
-                color: 'var(--paper)',
-                borderBottom: '2px solid var(--accent)',
-                paddingBottom: '0.6rem'
-              }}
-            >
-              Suspect: {displayName(params.suspectId)}
-            </h1>
-          </div>
-        </header>
-
-        {/* Memory ON/OFF toggle — the demo's proof that the game needs Supermemory. */}
-        <button
-          type="button"
-          aria-pressed={memoryEnabled}
-          onClick={() => setMemoryEnabled((v) => !v)}
-          style={{
-            alignSelf: 'center',
-            fontFamily: 'var(--font-mono)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.15em',
-            fontSize: '0.72rem',
-            padding: '0.5rem 1.1rem',
-            cursor: 'pointer',
-            background: memoryEnabled ? 'transparent' : 'rgba(158,27,27,0.18)',
-            color: memoryEnabled ? 'var(--amber)' : 'var(--accent-bright)',
-            border: `1px solid ${memoryEnabled ? 'var(--amber)' : 'var(--accent-bright)'}`
-          }}
-        >
-          {memoryEnabled ? '● Memory: ON' : '○ Memory: OFF — suspect forgets everything'}
-        </button>
-
-        {/* Voice indicator — suspects speak their lines via local TTS. When no
-            Kokoro server is running the request 503s and this reads "muted"
-            while the transcript keeps working. */}
-        <span
-          data-testid="tts-indicator"
-          aria-live="polite"
-          style={{
-            alignSelf: 'center',
-            fontFamily: 'var(--font-mono)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.15em',
-            fontSize: '0.68rem',
-            color: !ttsAvailable ? 'var(--paper-faint)' : isSpeaking ? 'var(--accent-bright)' : 'var(--paper-dim)'
-          }}
-        >
-          {!ttsAvailable ? '○ Voice: muted' : isSpeaking ? '● Speaking…' : '○ Voice: ready'}
+            {!ttsAvailable ? '○ Voice muted' : isSpeaking ? '● Speaking' : '○ Voice ready'}
+          </span>
+          <button
+            type="button"
+            aria-pressed={memoryEnabled}
+            onClick={() => setMemoryEnabled((v) => !v)}
+            className={`hud__btn ${memoryEnabled ? 'hud__btn--mem-on' : 'hud__btn--mem-off'}`}
+          >
+            {memoryEnabled ? '● Memory: ON' : '○ Memory: OFF'}
+          </button>
         </span>
+      </div>
 
-        {turns.length > 0 && (
+      {/* --- Dialogue transcript (the scrolling exchange) --- */}
+      <div className="dialogue-scene">
+        {latestTurn ? (
           <div
             data-testid="transcript"
-            style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+            style={{ maxHeight: '30vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}
           >
-            {turns.map((turn) => (
-              <div key={turn.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {/* Detective question */}
-                <div
-                  style={{
-                    alignSelf: 'flex-end',
-                    maxWidth: '80%',
-                    background: 'var(--bg-panel)',
-                    border: '1px solid var(--line)',
-                    borderRight: '3px solid var(--amber)',
-                    padding: '0.7rem 1rem',
-                    fontSize: '0.9rem',
-                    color: 'var(--paper-dim)'
-                  }}
-                >
-                  <span className="uppercase-label" style={{ display: 'block', marginBottom: 4 }}>
-                    You
-                  </span>
-                  {turn.question}
-                </div>
-                {/* Suspect answer */}
-                <div
-                  style={{
-                    alignSelf: 'flex-start',
-                    maxWidth: '85%',
-                    background:
-                      'radial-gradient(ellipse at 0% -30%, rgba(212,149,46,0.10), transparent 60%), var(--bg-elevated)',
-                    border: '1px solid var(--line)',
-                    borderLeft: '3px solid var(--accent)',
-                    padding: '0.9rem 1.1rem'
-                  }}
-                >
-                  <span className="uppercase-label" style={{ display: 'block', marginBottom: 6 }}>
-                    {displayName(params.suspectId)}
-                  </span>
+            {turns.map((turn, i) => (
+              <div key={turn.id}>
+                <p className="dialogue-scene__you">You: {turn.question}</p>
+                <div className="dialogue-scene__who">{name}</div>
+                {i === turns.length - 1 ? (
                   <DialogueBox text={turn.answer} />
-                </div>
+                ) : (
+                  <div data-testid="dialogue-box" data-full-text={turn.answer} className="dialogue-box-static">
+                    {turn.answer}
+                  </div>
+                )}
               </div>
             ))}
+            <div ref={transcriptEndRef} />
           </div>
+        ) : (
+          <p style={{ margin: 0, color: 'var(--paper-dim)', fontSize: '0.9rem' }}>
+            {name} sits across the table, waiting. Ask your first question.
+          </p>
         )}
+      </div>
 
+      {/* --- Ask bar --- */}
+      <form className="askbar" onSubmit={handleSubmit}>
+        <input
+          id="question"
+          aria-label="Ask a question"
+          value={question}
+          onChange={(event) => setQuestion(event.target.value)}
+          placeholder="Where were you at 22:10?"
+        />
+        {sttAvailable && (
+          <button
+            type="button"
+            onClick={handleMicToggle}
+            aria-label={isRecording ? 'Stop recording' : 'Record question'}
+            aria-pressed={isRecording}
+            data-testid="mic-button"
+            style={{
+              fontFamily: 'var(--font-mono)',
+              color: isRecording ? 'var(--accent-bright)' : 'var(--paper)',
+              background: isRecording ? 'rgba(158,27,27,0.18)' : 'transparent',
+              border: `1px solid ${isRecording ? 'var(--accent-bright)' : 'var(--line-strong)'}`,
+              padding: '0 0.9rem',
+              cursor: 'pointer'
+            }}
+          >
+            {isRecording ? '● Rec' : '🎤'}
+          </button>
+        )}
+        <button type="submit" disabled={isLoading}>
+          {isLoading ? '…' : 'Ask'}
+        </button>
+      </form>
+
+      {error && (
+        <p
+          role="alert"
+          style={{
+            position: 'absolute',
+            bottom: '11.5rem',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 25,
+            fontFamily: 'var(--font-mono)',
+            color: 'var(--accent-bright)',
+            background: 'rgba(6,6,10,0.9)',
+            border: '1px solid var(--accent)',
+            padding: '0.6rem 1rem',
+            margin: 0,
+            fontSize: '0.85rem'
+          }}
+        >
+          {error}
+        </p>
+      )}
+
+      {/* --- Right-edge tabs --- */}
+      <div className="sidetabs">
+        <button type="button" className="sidetab" onClick={() => setPanel(panel === 'evidence' ? null : 'evidence')}>
+          Evidence
+        </button>
+        <button type="button" className="sidetab sidetab--accent" onClick={() => setPanel(panel === 'memory' ? null : 'memory')}>
+          Memory
+        </button>
+        <a className="sidetab" href="/notebook">
+          Notebook
+        </a>
+        <button type="button" className="sidetab sidetab--danger" onClick={() => setPanel(panel === 'accuse' ? null : 'accuse')}>
+          Accusation
+        </button>
+      </div>
+
+      {/* --- Slide-in panels (always mounted so evidence/accuse stay wired) --- */}
+      <aside className={`slidepanel${panel === 'evidence' ? ' slidepanel--open' : ''}`}>
+        <button type="button" className="slidepanel__close" onClick={() => setPanel(null)}>
+          ✕
+        </button>
+        <h2 className="slidepanel__title">Evidence</h2>
         <EvidenceActions
           suspectId={params.suspectId}
           memoryEnabled={memoryEnabled}
           onFact={(fact) => setEvidenceFacts((prev) => [...prev, fact])}
         />
-
         {evidenceFacts.length > 0 && (
           <div
             data-testid="evidence-log"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.5rem',
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--line)',
-              borderLeft: '3px solid var(--amber)',
-              padding: '0.9rem 1.1rem'
-            }}
+            style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
           >
             <span className="uppercase-label" style={{ color: 'var(--amber)' }}>
               Evidence Log
             </span>
             {evidenceFacts.map((fact, index) => (
-              <p key={index} style={{ margin: 0, fontSize: '0.9rem', color: 'var(--paper-dim)' }}>
+              <p key={index} style={{ margin: 0, fontSize: '0.88rem', color: 'var(--paper-dim)' }}>
                 {fact}
               </p>
             ))}
           </div>
         )}
+      </aside>
 
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.6rem',
-            background: 'var(--bg-panel)',
-            border: '1px solid var(--line)',
-            padding: '1.25rem 1.4rem'
-          }}
-        >
-          <label htmlFor="question" className="uppercase-label">
-            Ask a question
-          </label>
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'stretch' }}>
-            <input
-              id="question"
-              value={question}
-              onChange={(event) => setQuestion(event.target.value)}
-              placeholder="Where were you at 22:10?"
-              style={{
-                flex: 1,
-                background: 'transparent',
-                border: 'none',
-                borderBottom: '1px solid var(--line-strong)',
-                color: 'var(--paper)',
-                fontSize: '1rem',
-                padding: '0.5rem 0.1rem',
-                outline: 'none'
-              }}
-            />
-            {/* Push-to-talk mic — speak the question instead of typing it.
-                Hidden when STT is unavailable (no whisper.cpp server / mic
-                denied) so typing remains the fallback. */}
-            {sttAvailable && (
-              <button
-                type="button"
-                onClick={handleMicToggle}
-                aria-label={isRecording ? 'Stop recording' : 'Record question'}
-                aria-pressed={isRecording}
-                data-testid="mic-button"
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '0.9rem',
-                  color: isRecording ? 'var(--accent-bright)' : 'var(--paper)',
-                  background: isRecording ? 'rgba(158,27,27,0.18)' : 'transparent',
-                  border: `1px solid ${isRecording ? 'var(--accent-bright)' : 'var(--line-strong)'}`,
-                  padding: '0 1rem',
-                  cursor: 'pointer'
-                }}
-              >
-                {isRecording ? '● Rec' : '🎤'}
-              </button>
-            )}
-            <button
-              type="submit"
-              disabled={isLoading}
-              style={{
-                fontFamily: 'var(--font-mono)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.15em',
-                fontSize: '0.8rem',
-                color: isLoading ? 'var(--paper-faint)' : 'var(--paper)',
-                background: 'transparent',
-                border: `1px solid ${isLoading ? 'var(--line-strong)' : 'var(--accent)'}`,
-                padding: '0 1.4rem',
-                cursor: isLoading ? 'default' : 'pointer'
-              }}
-            >
-              {isLoading ? 'Asking...' : 'Ask'}
-            </button>
-          </div>
-        </form>
-
-        {error && (
-          <p
-            role="alert"
-            style={{
-              fontFamily: 'var(--font-mono)',
-              color: 'var(--accent-bright)',
-              border: '1px solid var(--accent)',
-              padding: '0.85rem 1.1rem',
-              margin: 0,
-              fontSize: '0.9rem'
-            }}
-          >
-            {error}
-          </p>
-        )}
-
-        {latestTurn && (
+      <aside className={`slidepanel${panel === 'memory' ? ' slidepanel--open' : ''}`}>
+        <button type="button" className="slidepanel__close" onClick={() => setPanel(null)}>
+          ✕
+        </button>
+        <h2 className="slidepanel__title">Memory Trace</h2>
+        <p style={{ color: 'var(--paper-dim)', fontSize: '0.82rem', marginTop: 0 }}>
+          What {name} actually recalled behind that last answer &mdash; pulled live from Supermemory.
+        </p>
+        {latestTurn ? (
           <MemoryTracePanel query={latestTurn.query} retrievedMemories={latestTurn.retrievedMemories} />
+        ) : (
+          <p style={{ color: 'var(--paper-faint)', fontSize: '0.85rem' }}>Ask something first.</p>
         )}
+      </aside>
 
+      <aside className={`slidepanel${panel === 'accuse' ? ' slidepanel--open' : ''}`}>
+        <button type="button" className="slidepanel__close" onClick={() => setPanel(null)}>
+          ✕
+        </button>
+        <h2 className="slidepanel__title">Accuse</h2>
         <AccusePanel suspects={roster} movesUsed={movesUsed} />
-      </div>
+      </aside>
     </main>
   )
 }
