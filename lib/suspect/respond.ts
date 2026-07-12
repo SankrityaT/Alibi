@@ -8,6 +8,7 @@ export interface CharacterSheet {
   voice: string
   motive: string
   hiddenFacts: string
+  ttsVoice?: string
 }
 
 export interface RetrievedMemory {
