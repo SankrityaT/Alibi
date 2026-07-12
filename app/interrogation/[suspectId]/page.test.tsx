@@ -2,6 +2,15 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+
+// Mock the TTS hook so the page's speak() call does not fire real /api/tts
+// fetches during these interrogate-focused tests. Individual tests drive the
+// spy's behaviour to simulate a working voice or a TTS failure.
+const { speakMock } = vi.hoisted(() => ({ speakMock: vi.fn() }))
+vi.mock('../../../lib/tts/useSpokenLine.js', () => ({
+  useSpokenLine: () => ({ speak: speakMock, isSpeaking: false, ttsAvailable: true })
+}))
+
 import InterrogationPage from './page.js'
 
 function stubFetchOnce(responseBody: unknown, ok = true, status = 200) {
@@ -11,6 +20,11 @@ function stubFetchOnce(responseBody: unknown, ok = true, status = 200) {
     json: async () => responseBody
   })
 }
+
+beforeEach(() => {
+  speakMock.mockReset()
+  speakMock.mockResolvedValue(undefined)
+})
 
 afterEach(() => {
   cleanup()
@@ -147,5 +161,50 @@ describe('InterrogationPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('alert').textContent).toBe('Could not reach the server. Is it running?')
     })
+  })
+
+  it('speaks the returned answer text in the suspect voice after a turn', async () => {
+    const fetchMock = stubFetchOnce({
+      answer: 'I never left the platform.',
+      query: 'Where were you?',
+      retrievedMemories: []
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<InterrogationPage params={{ suspectId: 'mara' }} />)
+
+    fireEvent.change(screen.getByLabelText('Ask a question'), {
+      target: { value: 'Where were you?' }
+    })
+    fireEvent.submit(screen.getByLabelText('Ask a question').closest('form') as HTMLFormElement)
+
+    await waitFor(() => {
+      expect(speakMock).toHaveBeenCalledWith('I never left the platform.', { suspectId: 'mara' })
+    })
+  })
+
+  it('still renders the transcript when TTS fails', async () => {
+    // speak() rejecting must not break rendering the spoken line as text.
+    speakMock.mockRejectedValue(new Error('TTS unavailable'))
+    const fetchMock = stubFetchOnce({
+      answer: 'The lights were off in Room 3.',
+      query: 'q',
+      retrievedMemories: []
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<InterrogationPage params={{ suspectId: 'mara' }} />)
+
+    fireEvent.change(screen.getByLabelText('Ask a question'), {
+      target: { value: 'Anything else?' }
+    })
+    fireEvent.submit(screen.getByLabelText('Ask a question').closest('form') as HTMLFormElement)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('dialogue-box').getAttribute('data-full-text')).toBe(
+        'The lights were off in Room 3.'
+      )
+    })
+    expect(speakMock).toHaveBeenCalledTimes(1)
   })
 })

@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react'
 import { DialogueBox } from '../../../components/interrogation/DialogueBox.js'
 import { MemoryTracePanel } from '../../../components/interrogation/MemoryTracePanel.js'
+import { useSpokenLine } from '../../../lib/tts/useSpokenLine.js'
 
 interface RetrievedMemory {
   id: string
@@ -37,6 +38,9 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [memoryEnabled, setMemoryEnabled] = useState(true)
+  // Speaks each new suspect answer aloud in that suspect's voice. Degrades to
+  // silence (ttsAvailable=false) when no local Kokoro server is running.
+  const { speak, isSpeaking, ttsAvailable } = useSpokenLine()
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -68,6 +72,10 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
         }
       ])
       setQuestion('')
+      // Speak the suspect's line. The transcript shows the exact same text, so
+      // a TTS failure never blocks reading — speak() resolves on its own and we
+      // still guard against any rejection.
+      void speak(result.answer, { suspectId: params.suspectId }).catch(() => {})
     } catch {
       setError('Could not reach the server. Is it running?')
     } finally {
@@ -129,6 +137,24 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
         >
           {memoryEnabled ? '● Memory: ON' : '○ Memory: OFF — suspect forgets everything'}
         </button>
+
+        {/* Voice indicator — suspects speak their lines via local TTS. When no
+            Kokoro server is running the request 503s and this reads "muted"
+            while the transcript keeps working. */}
+        <span
+          data-testid="tts-indicator"
+          aria-live="polite"
+          style={{
+            alignSelf: 'center',
+            fontFamily: 'var(--font-mono)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.15em',
+            fontSize: '0.68rem',
+            color: !ttsAvailable ? 'var(--paper-faint)' : isSpeaking ? 'var(--accent-bright)' : 'var(--paper-dim)'
+          }}
+        >
+          {!ttsAvailable ? '○ Voice: muted' : isSpeaking ? '● Speaking…' : '○ Voice: ready'}
+        </span>
 
         {turns.length > 0 && (
           <div
