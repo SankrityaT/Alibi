@@ -9,21 +9,14 @@ import { AccusePanel } from '../../../components/case/AccusePanel.js'
 import { portraitForSuspect, INVESTIGATOR_SPRITE } from '../../../lib/station/portraits.js'
 import { useSpokenLine } from '../../../lib/tts/useSpokenLine.js'
 import { useMicTranscription } from '../../../lib/stt/useMicTranscription.js'
-
-interface RetrievedMemory {
-  id: string
-  content: string
-}
+import {
+  getTranscript,
+  setTranscript,
+  type RetrievedMemory,
+  type Turn
+} from '../../../lib/interrogate/transcriptStore.js'
 
 interface InterrogateResponse {
-  answer: string
-  query: string
-  retrievedMemories: RetrievedMemory[]
-}
-
-interface Turn {
-  id: number
-  question: string
   answer: string
   query: string
   retrievedMemories: RetrievedMemory[]
@@ -35,16 +28,6 @@ export interface InterrogationPageProps {
 
 function displayName(suspectId: string): string {
   return suspectId.charAt(0).toUpperCase() + suspectId.slice(1)
-}
-
-// Per-suspect transcripts persist across switches for the session (a plain
-// module Map, alive as long as the tab is). Switching to another suspect and
-// back resumes exactly where you left off instead of wiping the conversation.
-const transcriptStore = new Map<string, Turn[]>()
-
-/** Test-only: clear persisted transcripts between test cases. */
-export function __clearInterrogationTranscripts(): void {
-  transcriptStore.clear()
 }
 
 type PanelId = 'evidence' | 'memory' | 'notebook' | 'accuse' | null
@@ -62,7 +45,7 @@ interface NotebookResult {
 
 export default function InterrogationPage({ params }: InterrogationPageProps) {
   const [question, setQuestion] = useState('')
-  const [turns, setTurns] = useState<Turn[]>(() => transcriptStore.get(params.suspectId) ?? [])
+  const [turns, setTurns] = useState<Turn[]>(() => getTranscript(params.suspectId))
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [memoryEnabled, setMemoryEnabled] = useState(true)
@@ -111,7 +94,7 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
   useEffect(() => {
     // On switching suspects, restore that suspect's saved conversation (or start
     // fresh) and reset the per-suspect UI, then fetch opening hints.
-    const stored = transcriptStore.get(params.suspectId) ?? []
+    const stored = getTranscript(params.suspectId)
     setTurns(stored)
     setQuestion('')
     setSuggestions([])
@@ -183,7 +166,7 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
         }
       ]
       setTurns(nextTurns)
-      transcriptStore.set(params.suspectId, nextTurns)
+      setTranscript(params.suspectId, nextTurns)
       setQuestion('')
       setSpeakingViz(true)
       setTimeout(() => setSpeakingViz(false), 2600)
