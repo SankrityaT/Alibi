@@ -8,12 +8,13 @@ afterEach(() => {
 })
 
 describe('HomePage', () => {
-  it('renders the title and a link into the station', () => {
+  it('renders the title and a primary CTA into the station', () => {
     render(<HomePage />)
 
-    expect(screen.getByText('Alibi')).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 1, name: 'Alibi' })).toBeTruthy()
 
-    const link = screen.getByText('Enter the station') as HTMLAnchorElement
-    expect(link.getAttribute('href')).toBe('/station')
+    const links = screen.getAllByRole('link', { name: 'Play the case' })
+    expect(links.length).toBeGreaterThanOrEqual(1)
+    expect(links.every((l) => l.getAttribute('href') === '/station')).toBe(true)
   })
 })

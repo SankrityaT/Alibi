@@ -1,0 +1,266 @@
+{
+  "frames": [
+    {
+      "filename": "hat-man-idle-1",
+      "frame": {
+        "x": 86,
+        "y": 149,
+        "w": 39,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 39,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 39,
+        "h": 52
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    {
+      "filename": "hat-man-idle-2",
+      "frame": {
+        "x": 2,
+        "y": 203,
+        "w": 39,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 39,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 39,
+        "h": 52
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    {
+      "filename": "hat-man-idle-3",
+      "frame": {
+        "x": 43,
+        "y": 203,
+        "w": 39,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 39,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 39,
+        "h": 52
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    {
+      "filename": "hat-man-idle-4",
+      "frame": {
+        "x": 84,
+        "y": 203,
+        "w": 39,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 39,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 39,
+        "h": 52
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    {
+      "filename": "hat-man-walk-1",
+      "frame": {
+        "x": 2,
+        "y": 257,
+        "w": 39,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 39,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 39,
+        "h": 52
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    {
+      "filename": "hat-man-walk-2",
+      "frame": {
+        "x": 43,
+        "y": 257,
+        "w": 39,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 39,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 39,
+        "h": 52
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    {
+      "filename": "hat-man-walk-3",
+      "frame": {
+        "x": 84,
+        "y": 257,
+        "w": 39,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 39,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 39,
+        "h": 52
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    {
+      "filename": "hat-man-walk-4",
+      "frame": {
+        "x": 2,
+        "y": 311,
+        "w": 39,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 39,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 39,
+        "h": 52
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    {
+      "filename": "hat-man-walk-5",
+      "frame": {
+        "x": 43,
+        "y": 311,
+        "w": 39,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 39,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 39,
+        "h": 52
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    {
+      "filename": "hat-man-walk-6",
+      "frame": {
+        "x": 84,
+        "y": 311,
+        "w": 39,
+        "h": 52
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 39,
+        "h": 52
+      },
+      "sourceSize": {
+        "w": 39,
+        "h": 52
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  ],
+  "meta": {
+    "app": "http://www.codeandweb.com/texturepacker",
+    "version": "1.0",
+    "image": "atlas.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 128,
+      "h": 869
+    },
+    "scale": "1",
+    "smartupdate": "$TexturePacker:SmartUpdate:6326b606786e57c037769624eed8ec5b:9727309f44b2b807739c996e2ec3cfc7:cbce6b53f0f49e0bf15173c25c41f876$"
+  }
+}
