@@ -338,9 +338,11 @@ input {
 }
 .scene__vignette {
   position: absolute;
-  inset: 0;
+  /* Keep the vignette off the right edge so it stops darkening over the Case
+     Tools dock; a lighter overall shadow keeps the noir mood without hiding UI. */
+  inset: 0 13rem 0 0;
   pointer-events: none;
-  box-shadow: inset 0 0 220px rgba(0, 0, 0, 0.9);
+  box-shadow: inset 0 0 130px rgba(0, 0, 0, 0.5);
 }
 
 /* Top HUD */
