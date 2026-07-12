@@ -101,18 +101,20 @@ describe('InterrogationPage', () => {
   })
 
   it('accumulates a persistent transcript across multiple questions', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ answer: 'I was at the desk.', query: 'q1', retrievedMemories: [] })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({ answer: 'I already told you.', query: 'q2', retrievedMemories: [] })
-      })
+    // URL-aware mock: /api/case (fetched on mount for the accusation roster)
+    // returns a roster; /api/interrogate returns the two answers in order.
+    const answers = [
+      { answer: 'I was at the desk.', query: 'q1', retrievedMemories: [] },
+      { answer: 'I already told you.', query: 'q2', retrievedMemories: [] }
+    ]
+    let idx = 0
+    const fetchMock = vi.fn(async (url: string) => {
+      if (typeof url === 'string' && url.startsWith('/api/case')) {
+        return { ok: true, status: 200, json: async () => ({ started: true, suspects: [] }) }
+      }
+      const body = answers[idx++] ?? answers[answers.length - 1]
+      return { ok: true, status: 200, json: async () => body }
+    })
     vi.stubGlobal('fetch', fetchMock)
 
     render(<InterrogationPage params={{ suspectId: 'mara' }} />)
@@ -137,8 +139,8 @@ describe('InterrogationPage', () => {
     // DialogueBox, so assert them via the reliable data-full-text attribute.
     expect(transcript.textContent).toContain('Where were you?')
     expect(transcript.textContent).toContain('Are you sure?')
-    const answers = screen.getAllByTestId('dialogue-box').map((el) => el.getAttribute('data-full-text'))
-    expect(answers).toEqual(['I was at the desk.', 'I already told you.'])
+    const rendered = screen.getAllByTestId('dialogue-box').map((el) => el.getAttribute('data-full-text'))
+    expect(rendered).toEqual(['I was at the desk.', 'I already told you.'])
   })
 
   it('sends memoryEnabled: false after toggling memory off', async () => {
@@ -274,14 +276,38 @@ describe('InterrogationPage', () => {
     )
   })
 
-  it('renders the accusation panel with a full suspect roster and a moves counter', () => {
+  it('renders the accusation panel with a full suspect roster and a moves counter', async () => {
+    // Roster now loads from the server's public case view (no client import of
+    // the solution), so mock /api/case with a multi-suspect roster.
+    const fetchMock = vi.fn(async (url: string) => {
+      if (typeof url === 'string' && url.startsWith('/api/case')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            started: true,
+            suspects: [
+              { suspectId: 'mara', name: 'Mara' },
+              { suspectId: 'ivo', name: 'Ivo' },
+              { suspectId: 'jonas', name: 'Jonas' }
+            ]
+          })
+        }
+      }
+      return { ok: true, status: 200, json: async () => ({}) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
     render(<InterrogationPage params={{ suspectId: 'mara' }} />)
 
     // The panel is always present so the player can close the case at any time.
     expect(screen.getByTestId('accuse-panel')).toBeTruthy()
     expect(screen.getByRole('button', { name: /Accuse/i })).toBeTruthy()
-    // Roster comes from the active demo case, so more than one suspect is listed.
-    expect(screen.getAllByRole('option').length).toBeGreaterThan(1)
+    // Roster comes from the active case, so more than one suspect is listed
+    // once the /api/case fetch resolves.
+    await waitFor(() => {
+      expect(screen.getAllByRole('option').length).toBeGreaterThan(1)
+    })
     // No moves made yet.
     expect(screen.getByTestId('accuse-panel').textContent).toContain('0 moves used')
   })

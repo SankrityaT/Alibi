@@ -6,6 +6,10 @@ import type { VerbKind } from '../../lib/investigate/verbs.js'
 export interface EvidenceActionsProps {
   suspectId: string
   onFact: (fact: string) => void
+  // Honors the Memory ON/OFF toggle: when false, the investigate route swaps in
+  // a no-op memory client so pulls/presents don't touch Supermemory either —
+  // keeping the "prove it needs Supermemory" demo consistent across every verb.
+  memoryEnabled?: boolean
 }
 
 // The UI button id. 'present' is a friendlier label for the 'present-evidence'
@@ -46,7 +50,7 @@ interface InvestigateResponse {
  * line reacts. In every case the returned fact is handed back via onFact so the
  * page can surface it (e.g. in the transcript or notebook).
  */
-export function EvidenceActions({ suspectId, onFact }: EvidenceActionsProps) {
+export function EvidenceActions({ suspectId, onFact, memoryEnabled = true }: EvidenceActionsProps) {
   const [detail, setDetail] = useState('')
   const [pending, setPending] = useState<VerbKind | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -63,6 +67,7 @@ export function EvidenceActions({ suspectId, onFact }: EvidenceActionsProps) {
         body: JSON.stringify({
           kind,
           suspectId,
+          memoryEnabled,
           // Pull verbs read this as a search query; present-evidence reads it as
           // the fact to plant. Sending both keeps the client dumb and the API
           // authoritative about which field it needs.

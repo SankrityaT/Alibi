@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { DialogueBox } from '../../../components/interrogation/DialogueBox.js'
 import { MemoryTracePanel } from '../../../components/interrogation/MemoryTracePanel.js'
 import { EvidenceActions } from '../../../components/investigation/EvidenceActions.js'
@@ -8,7 +8,6 @@ import { AccusePanel } from '../../../components/case/AccusePanel.js'
 import { portraitForSuspect } from '../../../lib/station/portraits.js'
 import { useSpokenLine } from '../../../lib/tts/useSpokenLine.js'
 import { useMicTranscription } from '../../../lib/stt/useMicTranscription.js'
-import { fallbackCase } from '../../../content/cases/fallbackCase.js'
 
 interface RetrievedMemory {
   id: string
@@ -43,6 +42,11 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [memoryEnabled, setMemoryEnabled] = useState(true)
+  // Full suspect line-up for the accusation panel, fetched from the server's
+  // public case view. We deliberately do NOT import the case object here — it
+  // carries the solution, and a 'use client' import would ship the culprit to
+  // the browser bundle.
+  const [roster, setRoster] = useState<{ suspectId: string; name: string }[]>([])
   // Facts surfaced by the non-dialogue investigation verbs (CCTV/phone/forensics
   // pulls and evidence presented to the suspect). Pull-verb facts are also
   // written into the detective's memory server-side for the notebook and rating;
@@ -55,6 +59,26 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
   // transcript is dropped into the question field; on any failure the hook
   // flips sttAvailable=false and the button hides, so typing stays the fallback.
   const { isRecording, sttAvailable, start: startMic, stop: stopMic } = useMicTranscription()
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/case')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled && data && Array.isArray(data.suspects)) {
+          setRoster(
+            data.suspects.map((s: { suspectId: string; name: string }) => ({
+              suspectId: s.suspectId,
+              name: s.name
+            }))
+          )
+        }
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function handleMicToggle() {
     if (isRecording) {
@@ -114,7 +138,6 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
   // comes from the active demo case (the fallback) so the panel always lists a
   // full line-up even though this page is scoped to one suspect.
   const movesUsed = turns.length + evidenceFacts.length
-  const roster = fallbackCase.suspects.map((s) => ({ suspectId: s.suspectId, name: s.name }))
 
   return (
     <main
@@ -257,6 +280,7 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
 
         <EvidenceActions
           suspectId={params.suspectId}
+          memoryEnabled={memoryEnabled}
           onFact={(fact) => setEvidenceFacts((prev) => [...prev, fact])}
         />
 
