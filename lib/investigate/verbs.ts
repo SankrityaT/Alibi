@@ -6,6 +6,7 @@ import {
   WORLD_CONTAINER_TAG,
   suspectContainerTag
 } from '../case/types.js'
+import { getActiveCase } from '../case/store.js'
 
 // The investigation verbs. Three of them (cctv/phone/forensics) are "pull"
 // verbs: they search the shared world-evidence container for facts of that
@@ -140,8 +141,19 @@ export async function runVerb(input: VerbInput, deps: VerbDeps): Promise<VerbRes
     limit: 12
   })
 
+  // world-evidence is one shared container across every seeded case, so scope
+  // retrieval to the ACTIVE case's evidence ids — otherwise a CCTV pull in the
+  // café case would surface the museum case's footage. (No active case → don't
+  // filter, so a bare interrogate before /api/new-game still returns something.)
+  const activeCase = getActiveCase()
+  const caseEvidenceIds = new Set((activeCase?.evidence ?? []).map((e) => e.id))
   const retrieved: RetrievedMemory[] = searchResult.results
     .filter((item) => item.metadata?.kind === input.kind)
+    .filter(
+      (item) =>
+        caseEvidenceIds.size === 0 ||
+        caseEvidenceIds.has(String(item.metadata?.evidenceId))
+    )
     .map((item) => ({ id: item.id, content: item.content }))
 
   const fact = await deps.anthropic.createMessage({

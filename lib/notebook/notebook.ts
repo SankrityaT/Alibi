@@ -129,6 +129,12 @@ export async function askNotebook(
 ): Promise<NotebookAnswer> {
   const containerTags = opts?.containerTags ?? defaultNotebookContainers()
 
+  // world-evidence is shared across every seeded case; scope its citations to
+  // the active case's evidence ids so the notebook never cites another case's
+  // clues. Suspect containers are already per-case.
+  const activeCase = getActiveCase()
+  const caseEvidenceIds = new Set((activeCase?.evidence ?? []).map((e) => e.id))
+
   const citations: NotebookCitation[] = []
   for (const containerTag of containerTags) {
     const searchResult = await deps.supermemory.search({
@@ -141,6 +147,13 @@ export async function askNotebook(
       limit: 6
     })
     for (const item of searchResult.results) {
+      if (
+        containerTag === WORLD_CONTAINER_TAG &&
+        caseEvidenceIds.size > 0 &&
+        !caseEvidenceIds.has(String(item.metadata?.evidenceId))
+      ) {
+        continue
+      }
       citations.push({
         id: item.id,
         content: item.content,
