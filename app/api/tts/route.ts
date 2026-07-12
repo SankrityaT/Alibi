@@ -1,4 +1,5 @@
 import { KokoroTtsClient } from '../../../lib/tts/client.js'
+import { OpenAiTtsClient } from '../../../lib/tts/openaiClient.js'
 import { NullTtsClient } from '../../../lib/tts/nullClient.js'
 import type { TtsClient } from '../../../lib/tts/types.js'
 import { handleTtsRequest } from '../../../lib/tts/handleTtsRequest.js'
@@ -11,11 +12,18 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  // Build a Kokoro client when KOKORO_BASE_URL is configured; otherwise fall
-  // back to the null client so the route always answers with a graceful 503
-  // (never a 500) and the transcript keeps working with no audio.
-  const baseUrl = process.env.KOKORO_BASE_URL
-  const tts: TtsClient = baseUrl ? new KokoroTtsClient({ baseUrl }) : new NullTtsClient()
+  // Voice backend, in preference order:
+  //  1. OpenAI TTS — good voices, no local model (reuses the configured key);
+  //  2. a local Kokoro server if KOKORO_BASE_URL is set;
+  //  3. the null client — the route answers 503 and the client speaks with the
+  //     browser's built-in voice, so the transcript always works.
+  const openAiKey = process.env.TTS_OPENAI_API_KEY || process.env.OPENAI_API_KEY
+  const kokoroUrl = process.env.KOKORO_BASE_URL
+  const tts: TtsClient = openAiKey
+    ? new OpenAiTtsClient({ apiKey: openAiKey })
+    : kokoroUrl
+      ? new KokoroTtsClient({ baseUrl: kokoroUrl })
+      : new NullTtsClient()
 
   const result = await handleTtsRequest(body, { tts })
 
