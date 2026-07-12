@@ -168,6 +168,14 @@ export default function HomePage() {
           {error}
         </p>
       )}
+
+      <a
+        href="/setup"
+        className="uppercase-label"
+        style={{ marginTop: '0.5rem', color: 'var(--paper-dim)', textDecoration: 'none' }}
+      >
+        First run? Check your local setup &rarr;
+      </a>
     </main>
   )
 }
