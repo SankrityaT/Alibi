@@ -33,7 +33,7 @@ vi.mock('../../../lib/stt/useMicTranscription.js', () => ({
   useMicTranscription: () => micState
 }))
 
-import InterrogationPage from './page.js'
+import InterrogationPage, { __clearInterrogationTranscripts } from './page.js'
 import { portraitForSuspect } from '../../../lib/station/portraits.js'
 
 function stubFetchOnce(responseBody: unknown, ok = true, status = 200) {
@@ -58,6 +58,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+  __clearInterrogationTranscripts()
 })
 
 describe('InterrogationPage', () => {

@@ -37,6 +37,16 @@ function displayName(suspectId: string): string {
   return suspectId.charAt(0).toUpperCase() + suspectId.slice(1)
 }
 
+// Per-suspect transcripts persist across switches for the session (a plain
+// module Map, alive as long as the tab is). Switching to another suspect and
+// back resumes exactly where you left off instead of wiping the conversation.
+const transcriptStore = new Map<string, Turn[]>()
+
+/** Test-only: clear persisted transcripts between test cases. */
+export function __clearInterrogationTranscripts(): void {
+  transcriptStore.clear()
+}
+
 type PanelId = 'evidence' | 'memory' | 'notebook' | 'accuse' | null
 
 interface NotebookCitation {
@@ -52,7 +62,7 @@ interface NotebookResult {
 
 export default function InterrogationPage({ params }: InterrogationPageProps) {
   const [question, setQuestion] = useState('')
-  const [turns, setTurns] = useState<Turn[]>([])
+  const [turns, setTurns] = useState<Turn[]>(() => transcriptStore.get(params.suspectId) ?? [])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [memoryEnabled, setMemoryEnabled] = useState(true)
@@ -99,8 +109,13 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
   }, [turns])
 
   useEffect(() => {
-    // Opening hints before the first question, from the case framing alone.
-    void fetchSuggestions([])
+    // On switching suspects, restore that suspect's saved conversation (or start
+    // fresh) and reset the per-suspect UI, then fetch opening hints.
+    const stored = transcriptStore.get(params.suspectId) ?? []
+    setTurns(stored)
+    setQuestion('')
+    setSuggestions([])
+    void fetchSuggestions(stored)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.suspectId])
 
@@ -168,6 +183,7 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
         }
       ]
       setTurns(nextTurns)
+      transcriptStore.set(params.suspectId, nextTurns)
       setQuestion('')
       setSpeakingViz(true)
       setTimeout(() => setSpeakingViz(false), 2600)
@@ -285,110 +301,108 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
         </div>
       )}
 
-      {/* --- Dialogue transcript (the scrolling exchange) --- */}
-      <div className="dialogue-scene">
-        {latestTurn ? (
-          <div
-            data-testid="transcript"
-            style={{ maxHeight: '30vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}
-          >
-            {turns.map((turn, i) => (
-              <div key={turn.id}>
-                <p className="dialogue-scene__you">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img className="dlg-avatar" src={INVESTIGATOR_SPRITE} alt="" aria-hidden="true" />
-                  You: {turn.question}
-                </p>
-                <div className="dialogue-scene__who">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img className="dlg-avatar" src={portraitForSuspect(params.suspectId)} alt="" aria-hidden="true" />
-                  {name}
-                </div>
-                {i === turns.length - 1 ? (
-                  <DialogueBox text={turn.answer} />
-                ) : (
-                  <div data-testid="dialogue-box" data-full-text={turn.answer} className="dialogue-box-static">
-                    {turn.answer}
+      {/* --- Conversation console: scrollable transcript + hints + ask bar,
+          stacked so nothing overlaps and long answers scroll cleanly --- */}
+      <div className="console">
+        <div className="console__transcript" data-testid="transcript">
+          {latestTurn ? (
+            <>
+              {turns.map((turn, i) => (
+                <div key={turn.id} className="console__turn">
+                  <p className="dialogue-scene__you">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img className="dlg-avatar" src={INVESTIGATOR_SPRITE} alt="" aria-hidden="true" />
+                    You: {turn.question}
+                  </p>
+                  <div className="dialogue-scene__who">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img className="dlg-avatar" src={portraitForSuspect(params.suspectId)} alt="" aria-hidden="true" />
+                    {name}
                   </div>
-                )}
-              </div>
-            ))}
-            <div ref={transcriptEndRef} />
-          </div>
-        ) : (
-          <p style={{ margin: 0, color: 'var(--paper-dim)', fontSize: '0.9rem' }}>
-            {name} sits across the table, waiting. Ask your first question.
-          </p>
-        )}
-      </div>
-
-      {/* --- AI-suggested question chips --- */}
-      {(suggestions.length > 0 || suggestLoading) && (
-        <div className="hintbar" data-testid="question-hints">
-          <span className="hintbar__label">Suggested</span>
-          {suggestLoading && suggestions.length === 0 ? (
-            <span className="hintbar__loading">reading the room…</span>
+                  {i === turns.length - 1 ? (
+                    <DialogueBox text={turn.answer} />
+                  ) : (
+                    <div data-testid="dialogue-box" data-full-text={turn.answer} className="dialogue-box-static">
+                      {turn.answer}
+                    </div>
+                  )}
+                </div>
+              ))}
+              <div ref={transcriptEndRef} />
+            </>
           ) : (
-            suggestions.map((s, i) => (
-              <button
-                key={i}
-                type="button"
-                className="hint-chip"
-                disabled={isLoading}
-                onClick={() => askQuestion(s)}
-              >
-                {s}
-              </button>
-            ))
+            <p className="console__empty">
+              {name} sits across the table, waiting. Ask your first question.
+            </p>
           )}
         </div>
-      )}
 
-      {/* --- Ask bar --- */}
-      <form className="askbar" onSubmit={handleSubmit}>
-        <input
-          id="question"
-          aria-label="Ask a question"
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          placeholder="Where were you at 22:10?"
-        />
-        {sttAvailable && (
-          <button
-            type="button"
-            onClick={handleMicToggle}
-            aria-label={isRecording ? 'Stop recording' : 'Record question'}
-            aria-pressed={isRecording}
-            data-testid="mic-button"
-            style={{
-              fontFamily: 'var(--font-mono)',
-              color: isRecording ? 'var(--accent-bright)' : 'var(--paper)',
-              background: isRecording ? 'rgba(158,27,27,0.18)' : 'transparent',
-              border: `1px solid ${isRecording ? 'var(--accent-bright)' : 'var(--line-strong)'}`,
-              padding: '0 0.9rem',
-              cursor: 'pointer'
-            }}
-          >
-            {isRecording ? '● Rec' : '🎤'}
-          </button>
+        {(suggestions.length > 0 || suggestLoading) && (
+          <div className="console__hints" data-testid="question-hints">
+            <span className="hintbar__label">Suggested</span>
+            {suggestLoading && suggestions.length === 0 ? (
+              <span className="hintbar__loading">reading the room…</span>
+            ) : (
+              suggestions.map((s, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="hint-chip"
+                  disabled={isLoading}
+                  onClick={() => askQuestion(s)}
+                >
+                  {s}
+                </button>
+              ))
+            )}
+          </div>
         )}
-        <button type="submit" disabled={isLoading}>
-          {isLoading ? '…' : 'Ask'}
-        </button>
-      </form>
+
+        <form className="askbar" onSubmit={handleSubmit}>
+          <input
+            id="question"
+            aria-label="Ask a question"
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            placeholder="Where were you at 22:10?"
+          />
+          {sttAvailable && (
+            <button
+              type="button"
+              onClick={handleMicToggle}
+              aria-label={isRecording ? 'Stop recording' : 'Record question'}
+              aria-pressed={isRecording}
+              data-testid="mic-button"
+              style={{
+                fontFamily: 'var(--font-mono)',
+                color: isRecording ? 'var(--accent-bright)' : 'var(--paper)',
+                background: isRecording ? 'rgba(158,27,27,0.18)' : 'transparent',
+                border: `1px solid ${isRecording ? 'var(--accent-bright)' : 'var(--line-strong)'}`,
+                padding: '0 0.9rem',
+                cursor: 'pointer'
+              }}
+            >
+              {isRecording ? '● Rec' : '🎤'}
+            </button>
+          )}
+          <button type="submit" disabled={isLoading}>
+            {isLoading ? '…' : 'Ask'}
+          </button>
+        </form>
+      </div>
 
       {error && (
         <p
           role="alert"
           style={{
             position: 'absolute',
-            bottom: '11.5rem',
+            top: '4.5rem',
             left: '50%',
             transform: 'translateX(-50%)',
-            zIndex: 25,
+            zIndex: 30,
             fontFamily: 'var(--font-mono)',
             color: 'var(--accent-bright)',
-            background: 'rgba(6,6,10,0.9)',
+            background: 'rgba(6,6,10,0.95)',
             border: '1px solid var(--accent)',
             padding: '0.6rem 1rem',
             margin: 0,
