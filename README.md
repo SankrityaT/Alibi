@@ -60,33 +60,48 @@ only after you've dug enough.
 
 **Prerequisites**
 - Node.js 18+ and npm
-- The `claude` CLI, logged in — the game reaches Claude through the Claude Agent
-  SDK using your Claude subscription, **no `ANTHROPIC_API_KEY` needed**.
-- Supermemory Local running on your machine.
+- The `claude` CLI, logged in — suspect dialogue, question hints, and (optional)
+  case generation reach Claude through the Claude Agent SDK on your subscription,
+  **no `ANTHROPIC_API_KEY` needed**.
+- Supermemory Local — one binary, runs on your machine.
+- A model-provider key for Supermemory's memory-**extraction** step. The memory
+  layer (embeddings, storage, search, graph) is 100% local; turning raw text
+  into memory rows needs an LLM. Point it at a local model (`gpt-oss:20b` via
+  Ollama) or a cloud key — we use OpenAI `gpt-4o-mini` (pre-seeding all cases
+  costs a few cents).
 
-**1. Start Supermemory Local** (defaults to `http://localhost:6767`; prints an API
-key on first boot):
-```bash
-npx supermemory local
-```
-
-**2. Configure env** — copy `.env.example` to `.env` and set the two Supermemory
-values (no Claude key required):
+**1. Configure env** — copy `.env.example` to `.env`:
 ```bash
 cp .env.example .env
 # SUPERMEMORY_BASE_URL=http://localhost:6767
-# SUPERMEMORY_API_KEY=<key printed by supermemory on first boot>
+# SUPERMEMORY_API_KEY=<key Supermemory prints on first boot>
+# SUPERMEMORY_MODEL_API_KEY=<OpenAI key>   # memory extraction (the memory agent)
+# TTS_OPENAI_API_KEY=<OpenAI key>          # optional: real suspect voices
 ```
 
-**3. Install and run:**
+**2. Start Supermemory Local** (reads the keys from `.env`):
+```bash
+./scripts/start-supermemory.sh      # → http://localhost:6767
+```
+
+**3. Install and run the game:**
 ```bash
 npm install
 claude login        # once, if you haven't already
 npm run dev         # → http://localhost:3000
 ```
 
-Pages: `/` (home), `/station` (walkable station), `/interrogation/mara`
-(interrogation demo).
+Pick a difficulty on the home screen — it loads one of three hand-authored,
+solvable cases and seeds each suspect's memories into their own Supermemory
+container (once; replays are instant). Or tick **"Generate a brand-new case with
+AI"** for an engine-authored mystery.
+
+**Watch it work:** run `./scripts/watch.sh` in another terminal to see seeds,
+extraction, and retrieval live — including the tell-tale
+`memory=ON retrieved=N` vs `memory=OFF retrieved=0`.
+
+Pages: `/` (difficulty), `/brief` (case file), `/station` (walkable precinct),
+`/interrogation/<suspect>`.
 
 **Dev commands:** `npm test` · `npm run typecheck` · `npm run dev-interrogate`
 (CLI harness exercising the memory loop against the live Supermemory server).
