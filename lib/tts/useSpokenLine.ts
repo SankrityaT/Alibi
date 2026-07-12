@@ -18,6 +18,21 @@ export interface UseSpokenLineResult {
 /** Default factory used in the real app; tests inject a stub instead. */
 const defaultAudioFactory = (): HTMLAudioElement => new Audio()
 
+function hashStr(value: string): number {
+  let h = 5381
+  for (let i = 0; i < value.length; i += 1) h = ((h << 5) + h + value.charCodeAt(i)) | 0
+  return Math.abs(h)
+}
+
+// Read only the spoken words aloud — drop *stage directions* like
+// "*leans back*" so the voice doesn't narrate them.
+function spokenText(text: string): string {
+  return text
+    .replace(/\*[^*]*\*/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 /**
  * Client hook that speaks a suspect's line via the local Kokoro TTS server.
  *
@@ -34,6 +49,36 @@ export function useSpokenLine(
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [ttsAvailable, setTtsAvailable] = useState(true)
 
+  // Fallback voice via the browser's built-in speech synthesis, used when no
+  // Kokoro server is configured. Picks a stable per-suspect voice + pitch so
+  // each character sounds distinct. Returns true if it started speaking.
+  const speakViaBrowser = useCallback((text: string, suspectId?: string): boolean => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return false
+    const clean = spokenText(text)
+    if (!clean) return false
+    try {
+      const synth = window.speechSynthesis
+      synth.cancel()
+      const utterance = new SpeechSynthesisUtterance(clean)
+      const voices = synth.getVoices()
+      if (voices.length > 0) {
+        const englishVoices = voices.filter((v) => /^en/i.test(v.lang))
+        const pool = englishVoices.length > 0 ? englishVoices : voices
+        const h = hashStr(suspectId ?? clean)
+        utterance.voice = pool[h % pool.length]
+        utterance.pitch = 0.85 + (h % 30) / 100
+        utterance.rate = 0.98
+      }
+      utterance.onstart = () => setIsSpeaking(true)
+      utterance.onend = () => setIsSpeaking(false)
+      utterance.onerror = () => setIsSpeaking(false)
+      synth.speak(utterance)
+      return true
+    } catch {
+      return false
+    }
+  }, [])
+
   const speak = useCallback(
     async (text: string, opts: { suspectId?: string; voice?: string }): Promise<void> => {
       if (typeof text !== 'string' || text.trim().length === 0) {
@@ -48,14 +93,15 @@ export function useSpokenLine(
           body: JSON.stringify({ text, suspectId: opts.suspectId, voice: opts.voice })
         })
       } catch {
-        // Network / route unreachable — treat as unavailable, stay silent.
-        setTtsAvailable(false)
+        // Network / route unreachable — fall back to browser speech.
+        setTtsAvailable(speakViaBrowser(text, opts.suspectId))
         return
       }
 
-      // 503 is the graceful "no Kokoro" signal from the route.
+      // 503 is the graceful "no Kokoro" signal from the route — use the
+      // browser's own voice so the player still hears the suspect.
       if (response.status === 503) {
-        setTtsAvailable(false)
+        setTtsAvailable(speakViaBrowser(text, opts.suspectId))
         return
       }
 
@@ -109,7 +155,7 @@ export function useSpokenLine(
         stop()
       }
     },
-    [audioFactory]
+    [audioFactory, speakViaBrowser]
   )
 
   return { speak, isSpeaking, ttsAvailable }

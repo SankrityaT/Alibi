@@ -151,9 +151,9 @@ export default function BriefPage() {
               </p>
               <p style={{ margin: 0, color: 'var(--paper-dim)', fontSize: '0.92rem', lineHeight: 1.65 }}>
                 Interrogate each suspect, pull evidence from the world (CCTV, phone records, forensics),
-                and use your Notebook to connect it. Name the culprit &mdash; and the false memory they
-                planted to cover it. One warning: <strong style={{ color: 'var(--paper)' }}>everything you
-                say to a suspect, they remember</strong> &mdash; including the lies you tell them.
+                and use your Notebook to connect it. Every suspect remembers their real night &mdash; but{' '}
+                <strong style={{ color: 'var(--paper)' }}>the culprit&rsquo;s memory hides one planted lie</strong>, an
+                alibi that never happened. Name the culprit and expose the false memory they&rsquo;re hiding behind.
               </p>
             </section>
 

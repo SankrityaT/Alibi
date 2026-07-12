@@ -138,8 +138,8 @@ export default function HomePage() {
           margin: 0
         }}
       >
-        Four suspects. One vanished courier. Every word you say to them, they
-        remember &mdash; whether it was true or not.
+        Four suspects, each with a real memory of that night. One of them buried
+        a lie in theirs. Find it &mdash; before their story becomes the truth.
       </p>
 
       <span className="uppercase-label" style={{ marginTop: '0.5rem' }}>

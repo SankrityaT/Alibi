@@ -127,6 +127,9 @@ export function buildCaseGenerationPrompt(
     `Set the top-level "difficulty" field to "${difficulty}".`,
     'Give each suspect a distinct voice, a ttsVoice id, a motive, a secret, an',
     'incriminatingFact, and a groundTruth array of first-person statements.',
+    'Keep the case COMPACT so it generates fast: 3 groundTruth statements per',
+    'suspect, 3-4 evidence items, 3-4 timeline events, 2-3 worldFacts, and keep',
+    'every string to a single concise sentence.',
     'Return ONLY the JSON object.',
   ].join('\n')
 
@@ -153,7 +156,7 @@ export async function generateCase(
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     let caseFile: CaseFile
     try {
-      const reply = await deps.anthropic.createMessage({ system, userMessage })
+      const reply = await deps.anthropic.createMessage({ system, userMessage, model: 'haiku' })
       caseFile = parseCaseJson(reply)
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)

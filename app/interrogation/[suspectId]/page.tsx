@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useRouter } from 'next/navigation'
 import { DialogueBox } from '../../../components/interrogation/DialogueBox.js'
 import { MemoryTracePanel } from '../../../components/interrogation/MemoryTracePanel.js'
 import { EvidenceActions } from '../../../components/investigation/EvidenceActions.js'
@@ -36,7 +37,18 @@ function displayName(suspectId: string): string {
   return suspectId.charAt(0).toUpperCase() + suspectId.slice(1)
 }
 
-type PanelId = 'evidence' | 'memory' | 'accuse' | null
+type PanelId = 'evidence' | 'memory' | 'notebook' | 'accuse' | null
+
+interface NotebookCitation {
+  id: string
+  content: string
+  source: string
+}
+interface NotebookResult {
+  query: string
+  answer: string
+  citations: NotebookCitation[]
+}
 
 export default function InterrogationPage({ params }: InterrogationPageProps) {
   const [question, setQuestion] = useState('')
@@ -52,6 +64,10 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
   const [speakingViz, setSpeakingViz] = useState(false)
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [suggestLoading, setSuggestLoading] = useState(false)
+  const [notebookQuery, setNotebookQuery] = useState('')
+  const [notebookResult, setNotebookResult] = useState<NotebookResult | null>(null)
+  const [notebookLoading, setNotebookLoading] = useState(false)
+  const router = useRouter()
   const transcriptEndRef = useRef<HTMLDivElement>(null)
 
   const { speak, isSpeaking, ttsAvailable } = useSpokenLine()
@@ -170,6 +186,25 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
     void askQuestion(question)
   }
 
+  async function handleNotebookSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!notebookQuery.trim() || notebookLoading) return
+    setNotebookLoading(true)
+    try {
+      const res = await fetch('/api/notebook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: notebookQuery, memoryEnabled })
+      })
+      const body = await res.json()
+      if (res.ok) setNotebookResult(body as NotebookResult)
+    } catch {
+      // Notebook is best-effort; leave the last result in place.
+    } finally {
+      setNotebookLoading(false)
+    }
+  }
+
   const latestTurn = turns.length > 0 ? turns[turns.length - 1] : null
   const movesUsed = turns.length + evidenceFacts.length
   const name = displayName(params.suspectId)
@@ -225,6 +260,30 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
           </button>
         </span>
       </div>
+
+      {/* --- Suspect switcher: jump between interrogations without leaving --- */}
+      {roster.length > 1 && (
+        <div className="suspect-switch" data-testid="suspect-switch">
+          {roster.map((s) => {
+            const active = s.suspectId === params.suspectId
+            return (
+              <button
+                key={s.suspectId}
+                type="button"
+                className={`suspect-switch__btn${active ? ' suspect-switch__btn--active' : ''}`}
+                aria-current={active ? 'true' : undefined}
+                onClick={() => {
+                  if (!active) router.push(`/interrogation/${s.suspectId}`)
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className="suspect-switch__avatar" src={portraitForSuspect(s.suspectId)} alt="" aria-hidden="true" />
+                {s.name}
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {/* --- Dialogue transcript (the scrolling exchange) --- */}
       <div className="dialogue-scene">
@@ -340,19 +399,19 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
         </p>
       )}
 
-      {/* --- Right-edge tabs --- */}
+      {/* --- Right-side tool dock --- */}
       <div className="sidetabs">
         <button type="button" className="sidetab" onClick={() => setPanel(panel === 'evidence' ? null : 'evidence')}>
-          Evidence
+          🔎 Evidence
         </button>
         <button type="button" className="sidetab sidetab--accent" onClick={() => setPanel(panel === 'memory' ? null : 'memory')}>
-          Memory
+          🧠 Memory
         </button>
-        <a className="sidetab" href="/notebook">
-          Notebook
-        </a>
+        <button type="button" className="sidetab" onClick={() => setPanel(panel === 'notebook' ? null : 'notebook')}>
+          📓 Notebook
+        </button>
         <button type="button" className="sidetab sidetab--danger" onClick={() => setPanel(panel === 'accuse' ? null : 'accuse')}>
-          Accusation
+          ⚖ Accusation
         </button>
       </div>
 
@@ -396,6 +455,62 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
           <MemoryTracePanel query={latestTurn.query} retrievedMemories={latestTurn.retrievedMemories} />
         ) : (
           <p style={{ color: 'var(--paper-faint)', fontSize: '0.85rem' }}>Ask something first.</p>
+        )}
+      </aside>
+
+      <aside className={`slidepanel${panel === 'notebook' ? ' slidepanel--open' : ''}`}>
+        <button type="button" className="slidepanel__close" onClick={() => setPanel(null)}>
+          ✕
+        </button>
+        <h2 className="slidepanel__title">Notebook</h2>
+        <p style={{ color: 'var(--paper-dim)', fontSize: '0.82rem', marginTop: 0 }}>
+          Cross-reference everything you&rsquo;ve gathered &mdash; synthesized across every suspect and
+          all the evidence.
+        </p>
+        <form onSubmit={handleNotebookSearch} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.9rem' }}>
+          <input
+            aria-label="Search your notebook"
+            value={notebookQuery}
+            onChange={(e) => setNotebookQuery(e.target.value)}
+            placeholder="Who had a motive and no alibi?"
+            style={{
+              flex: 1,
+              background: 'transparent',
+              border: '1px solid var(--line-strong)',
+              color: 'var(--paper)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.85rem',
+              padding: '0.45rem 0.6rem',
+              outline: 'none'
+            }}
+          />
+          <button
+            type="submit"
+            disabled={notebookLoading}
+            className="hud__btn"
+            style={{ whiteSpace: 'nowrap' }}
+          >
+            {notebookLoading ? '…' : 'Search'}
+          </button>
+        </form>
+        {notebookResult && (
+          <div data-testid="notebook-result" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <p style={{ color: 'var(--paper)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
+              {notebookResult.answer}
+            </p>
+            {notebookResult.citations.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <span className="uppercase-label" style={{ color: 'var(--amber)' }}>
+                  Sources &mdash; {notebookResult.citations.length}
+                </span>
+                {notebookResult.citations.map((c) => (
+                  <p key={c.id} style={{ margin: 0, fontSize: '0.8rem', color: 'var(--paper-dim)', lineHeight: 1.5 }}>
+                    <span style={{ color: 'var(--paper-faint)' }}>[{c.source}]</span> {c.content}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </aside>
 

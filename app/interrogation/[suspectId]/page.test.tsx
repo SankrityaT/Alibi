@@ -11,6 +11,13 @@ vi.mock('../../../lib/tts/useSpokenLine.js', () => ({
   useSpokenLine: () => ({ speak: speakMock, isSpeaking: false, ttsAvailable: true })
 }))
 
+// The suspect switcher uses the app router; stub it so render doesn't require a
+// mounted router context.
+const { pushMock } = vi.hoisted(() => ({ pushMock: vi.fn() }))
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: pushMock })
+}))
+
 // Mock the mic hook so the push-to-talk button drives a deterministic
 // transcript without touching real MediaRecorder / getUserMedia. Tests set the
 // spies' behaviour and the sttAvailable flag before rendering.
