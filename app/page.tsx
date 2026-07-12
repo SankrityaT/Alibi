@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 type Difficulty = 'easy' | 'medium' | 'hard'
 
@@ -11,18 +11,61 @@ const DIFFICULTIES: { level: Difficulty; label: string; points: number; blurb: s
   { level: 'hard', label: 'Hard', points: 30, blurb: 'a decoy guiltier than the culprit' }
 ]
 
+// Story-mode beats shown while the engine generates the case and Supermemory
+// finishes indexing the seeded memories. They read like a case being assembled;
+// the later beats explicitly cover the memory-indexing wait so the pause feels
+// intentional rather than broken.
+const LOADING_BEATS: string[] = [
+  'Opening a fresh case file…',
+  'Rounding up the suspects…',
+  'Establishing the timeline…',
+  "Planting the culprit's false alibi…",
+  'Wiring the precinct cameras…',
+  'Filing phone records and forensics…',
+  'Letting the memories set in…',
+  'Pouring the coffee. This one’s ugly.'
+]
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
 export default function HomePage() {
   const router = useRouter()
-  const [starting, setStarting] = useState<Difficulty | null>(null)
+  const [phase, setPhase] = useState<'idle' | 'loading'>('idle')
+  const [chosen, setChosen] = useState<Difficulty | null>(null)
+  const [beat, setBeat] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const cancelledRef = useRef(false)
+
+  useEffect(() => () => { cancelledRef.current = true }, [])
+
+  // Advance the story beats while loading.
+  useEffect(() => {
+    if (phase !== 'loading') return
+    const id = setInterval(() => setBeat((b) => b + 1), 2200)
+    return () => clearInterval(id)
+  }, [phase])
+
+  async function waitForMemoriesReady(maxMs = 45000) {
+    const deadline = Date.now() + maxMs
+    // Poll the readiness probe; fail-open so we never hang past the deadline.
+    while (Date.now() < deadline && !cancelledRef.current) {
+      try {
+        const r = await fetch(`/api/case-ready?t=${Date.now()}`, { cache: 'no-store' })
+        const body = await r.json()
+        if (body?.ready) return
+      } catch {
+        return
+      }
+      await sleep(1800)
+    }
+  }
 
   async function startCase(difficulty: Difficulty) {
-    setStarting(difficulty)
+    setChosen(difficulty)
+    setPhase('loading')
+    setBeat(0)
     setError(null)
     try {
-      // Seeds a case into Supermemory server-side (suspect memories + the
-      // culprit's planted false memory) and sets it active, then we enter the
-      // station. Without this, suspects have nothing to remember.
       const response = await fetch('/api/new-game', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -31,21 +74,26 @@ export default function HomePage() {
       if (!response.ok) {
         const body = await response.json().catch(() => ({}))
         setError(typeof body.error === 'string' ? body.error : 'Could not start the case.')
-        setStarting(null)
+        setPhase('idle')
         return
       }
-      // Stamp the case start so the accusation can report how long the solve
-      // took — the Detective Rating rewards a fast, decisive close.
       try {
         sessionStorage.setItem('alibi:caseStartedAt', String(Date.now()))
       } catch {
-        // sessionStorage unavailable (private mode etc.) — time bonus is optional.
+        // sessionStorage unavailable — the solve-time bonus is optional.
       }
-      router.push('/brief')
+      // Hold on the loading screen until the suspects' memories are actually
+      // searchable, so the first interrogation is never empty.
+      await waitForMemoriesReady()
+      if (!cancelledRef.current) router.push('/brief')
     } catch {
       setError('Could not reach the server. Is it running?')
-      setStarting(null)
+      setPhase('idle')
     }
+  }
+
+  if (phase === 'loading') {
+    return <LoadingScreen beat={beat} difficulty={chosen} />
   }
 
   return (
@@ -107,60 +155,54 @@ export default function HomePage() {
           maxWidth: 720
         }}
       >
-        {DIFFICULTIES.map((d) => {
-          const isStarting = starting === d.level
-          const disabled = starting !== null
-          return (
-            <button
-              key={d.level}
-              type="button"
-              disabled={disabled}
-              onClick={() => startCase(d.level)}
+        {DIFFICULTIES.map((d) => (
+          <button
+            key={d.level}
+            type="button"
+            onClick={() => startCase(d.level)}
+            style={{
+              fontFamily: 'var(--font-mono)',
+              minWidth: 190,
+              textAlign: 'left',
+              padding: '1rem 1.2rem',
+              cursor: 'pointer',
+              background: 'var(--bg-panel)',
+              color: 'var(--paper)',
+              border: '1px solid var(--accent)'
+            }}
+          >
+            <span
               style={{
-                fontFamily: 'var(--font-mono)',
-                minWidth: 190,
-                textAlign: 'left',
-                padding: '1rem 1.2rem',
-                cursor: disabled ? 'default' : 'pointer',
-                background: 'var(--bg-panel)',
-                color: 'var(--paper)',
-                border: `1px solid ${isStarting ? 'var(--amber)' : 'var(--accent)'}`,
-                opacity: disabled && !isStarting ? 0.5 : 1
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'baseline'
               }}
             >
               <span
                 style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'baseline'
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '1.5rem',
+                  letterSpacing: '0.05em'
                 }}
               >
-                <span
-                  style={{
-                    fontFamily: 'var(--font-display)',
-                    fontSize: '1.5rem',
-                    letterSpacing: '0.05em'
-                  }}
-                >
-                  {d.label}
-                </span>
-                <span style={{ color: 'var(--amber)', fontSize: '0.8rem' }}>+{d.points} pts</span>
+                {d.label}
               </span>
-              <span
-                style={{
-                  display: 'block',
-                  marginTop: 6,
-                  fontSize: '0.72rem',
-                  color: 'var(--paper-faint)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em'
-                }}
-              >
-                {isStarting ? 'Seeding the case…' : d.blurb}
-              </span>
-            </button>
-          )
-        })}
+              <span style={{ color: 'var(--amber)', fontSize: '0.8rem' }}>+{d.points} pts</span>
+            </span>
+            <span
+              style={{
+                display: 'block',
+                marginTop: 6,
+                fontSize: '0.72rem',
+                color: 'var(--paper-faint)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em'
+              }}
+            >
+              {d.blurb}
+            </span>
+          </button>
+        ))}
       </div>
 
       {error && (
@@ -176,6 +218,131 @@ export default function HomePage() {
       >
         First run? Check your local setup &rarr;
       </a>
+    </main>
+  )
+}
+
+function LoadingScreen({ beat, difficulty }: { beat: number; difficulty: Difficulty | null }) {
+  const line = LOADING_BEATS[Math.min(beat, LOADING_BEATS.length - 1)]
+  return (
+    <main
+      role="status"
+      aria-live="polite"
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '2rem',
+        padding: '2rem',
+        overflow: 'hidden',
+        position: 'relative',
+        background: 'radial-gradient(ellipse at 50% 35%, #1a130b 0%, #080705 72%)'
+      }}
+    >
+      {/* slow searchlight sweep */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: '-30%',
+          background:
+            'conic-gradient(from 0deg at 50% 40%, transparent 0deg, rgba(212,149,46,0.10) 24deg, transparent 60deg)',
+          animation: 'sweep 6s linear infinite',
+          pointerEvents: 'none'
+        }}
+      />
+      <div className="scene__grain-scan" aria-hidden="true" />
+
+      <span className="uppercase-label" style={{ letterSpacing: '0.4em', color: 'var(--accent-bright)' }}>
+        {difficulty ? `${difficulty} case` : 'New case'} &mdash; assembling
+      </span>
+
+      {/* case-file stamp */}
+      <div
+        style={{
+          position: 'relative',
+          fontFamily: 'var(--font-display)',
+          fontSize: 'clamp(3rem, 11vw, 6rem)',
+          letterSpacing: '0.05em',
+          color: 'var(--paper)',
+          textShadow: '0 0 34px rgba(158,27,27,0.5)',
+          zIndex: 1
+        }}
+      >
+        CASE FILE
+        <span
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            top: '-0.6rem',
+            right: '-1.4rem',
+            transform: 'rotate(-14deg)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '0.9rem',
+            letterSpacing: '0.25em',
+            color: 'var(--accent-bright)',
+            border: '2px solid var(--accent-bright)',
+            padding: '0.2rem 0.5rem',
+            opacity: 0.9,
+            animation: 'flicker 3s infinite'
+          }}
+        >
+          ACTIVE
+        </span>
+      </div>
+
+      {/* evidence-tape progress bar */}
+      <div
+        aria-hidden="true"
+        style={{
+          width: 'min(420px, 80vw)',
+          height: 6,
+          background: 'rgba(232,223,200,0.08)',
+          borderRadius: 3,
+          overflow: 'hidden',
+          zIndex: 1
+        }}
+      >
+        <div
+          style={{
+            height: '100%',
+            width: '38%',
+            background: 'linear-gradient(90deg, transparent, var(--amber), transparent)',
+            animation: 'slide 1.4s ease-in-out infinite'
+          }}
+        />
+      </div>
+
+      <p
+        style={{
+          fontFamily: 'var(--font-mono)',
+          color: 'var(--paper)',
+          fontSize: '1rem',
+          minHeight: '1.4em',
+          margin: 0,
+          zIndex: 1
+        }}
+      >
+        {line}
+        <span className="blink-cursor">▋</span>
+      </p>
+
+      <p
+        style={{
+          fontFamily: 'var(--font-mono)',
+          color: 'var(--paper-faint)',
+          fontSize: '0.75rem',
+          maxWidth: '40ch',
+          textAlign: 'center',
+          margin: 0,
+          zIndex: 1
+        }}
+      >
+        The suspects are learning what they remember. This takes a moment &mdash;
+        it&rsquo;s what makes them lie convincingly.
+      </p>
     </main>
   )
 }

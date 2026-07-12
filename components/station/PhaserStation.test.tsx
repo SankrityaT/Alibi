@@ -43,7 +43,7 @@ afterEach(() => {
 describe('PhaserStation', () => {
   it('boots a Phaser game sized to the station bounds, mounted into its container', async () => {
     const onEnterRoom = vi.fn()
-    const { getByTestId } = render(<PhaserStation onEnterRoom={onEnterRoom} />)
+    const { getByTestId } = render(<PhaserStation onEnterRoom={onEnterRoom} suspects={[{ suspectId: 'mara', name: 'Mara' }]} />)
 
     await waitFor(() => {
       expect(instances()).toHaveLength(1)
@@ -57,7 +57,7 @@ describe('PhaserStation', () => {
 
   it('destroys the Phaser game on unmount', async () => {
     const onEnterRoom = vi.fn()
-    const { unmount } = render(<PhaserStation onEnterRoom={onEnterRoom} />)
+    const { unmount } = render(<PhaserStation onEnterRoom={onEnterRoom} suspects={[{ suspectId: 'mara', name: 'Mara' }]} />)
 
     await waitFor(() => {
       expect(instances()).toHaveLength(1)
@@ -71,7 +71,7 @@ describe('PhaserStation', () => {
 
   it('registers the interior tile and portrait textures in the scene preload', async () => {
     const onEnterRoom = vi.fn()
-    render(<PhaserStation onEnterRoom={onEnterRoom} />)
+    render(<PhaserStation onEnterRoom={onEnterRoom} suspects={[{ suspectId: 'mara', name: 'Mara' }]} />)
 
     await waitFor(() => {
       expect(instances()).toHaveLength(1)

@@ -50,6 +50,8 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
   // Drives the suspect's "speaking" animation for a beat after each answer,
   // even when TTS is off, so the character visibly reacts.
   const [speakingViz, setSpeakingViz] = useState(false)
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [suggestLoading, setSuggestLoading] = useState(false)
   const transcriptEndRef = useRef<HTMLDivElement>(null)
 
   const { speak, isSpeaking, ttsAvailable } = useSpokenLine()
@@ -80,6 +82,12 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
     transcriptEndRef.current?.scrollIntoView?.({ behavior: 'smooth' })
   }, [turns])
 
+  useEffect(() => {
+    // Opening hints before the first question, from the case framing alone.
+    void fetchSuggestions([])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.suspectId])
+
   async function handleMicToggle() {
     if (isRecording) {
       const transcript = await stopMic()
@@ -91,8 +99,31 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
     }
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function fetchSuggestions(contextTurns: Turn[]) {
+    setSuggestLoading(true)
+    try {
+      const res = await fetch('/api/suggest-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          suspectId: params.suspectId,
+          transcript: contextTurns.map((t) => ({ question: t.question, answer: t.answer }))
+        })
+      })
+      const body = await res.json()
+      if (Array.isArray(body.questions)) {
+        setSuggestions(body.questions.filter((q: unknown): q is string => typeof q === 'string'))
+      }
+    } catch {
+      // Hints are optional; silence failures.
+    } finally {
+      setSuggestLoading(false)
+    }
+  }
+
+  async function askQuestion(text: string) {
+    const q = text.trim()
+    if (!q || isLoading) return
     setIsLoading(true)
     setError(null)
 
@@ -100,7 +131,7 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
       const response = await fetch('/api/interrogate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ suspectId: params.suspectId, question, memoryEnabled })
+        body: JSON.stringify({ suspectId: params.suspectId, question: q, memoryEnabled })
       })
       const body = await response.json()
 
@@ -110,25 +141,33 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
       }
 
       const result = body as InterrogateResponse
-      setTurns((prev) => [
-        ...prev,
+      const nextTurns: Turn[] = [
+        ...turns,
         {
-          id: prev.length,
-          question,
+          id: turns.length,
+          question: q,
           answer: result.answer,
           query: result.query,
           retrievedMemories: result.retrievedMemories
         }
-      ])
+      ]
+      setTurns(nextTurns)
       setQuestion('')
       setSpeakingViz(true)
       setTimeout(() => setSpeakingViz(false), 2600)
       void speak(result.answer, { suspectId: params.suspectId }).catch(() => {})
+      // Refresh hints against the updated conversation.
+      void fetchSuggestions(nextTurns)
     } catch {
       setError('Could not reach the server. Is it running?')
     } finally {
       setIsLoading(false)
     }
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    void askQuestion(question)
   }
 
   const latestTurn = turns.length > 0 ? turns[turns.length - 1] : null
@@ -223,6 +262,28 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
           </p>
         )}
       </div>
+
+      {/* --- AI-suggested question chips --- */}
+      {(suggestions.length > 0 || suggestLoading) && (
+        <div className="hintbar" data-testid="question-hints">
+          <span className="hintbar__label">Suggested</span>
+          {suggestLoading && suggestions.length === 0 ? (
+            <span className="hintbar__loading">reading the room…</span>
+          ) : (
+            suggestions.map((s, i) => (
+              <button
+                key={i}
+                type="button"
+                className="hint-chip"
+                disabled={isLoading}
+                onClick={() => askQuestion(s)}
+              >
+                {s}
+              </button>
+            ))
+          )}
+        </div>
+      )}
 
       {/* --- Ask bar --- */}
       <form className="askbar" onSubmit={handleSubmit}>

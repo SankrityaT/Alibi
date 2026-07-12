@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { PhaserStation } from '../../components/station/PhaserStation.js'
+import { assignSuspectsToRooms } from '../../lib/station/rooms.js'
 
 interface PublicSuspect {
   suspectId: string
@@ -44,14 +45,16 @@ export default function StationPage() {
   // the clickable roster below is the reliable path for the demo.
   const handleEnterRoom = useCallback(
     (roomId: string) => {
-      if (roomId === 'case-board') {
-        router.push('/notebook')
-        return
-      }
-      const index = roomId === 'interrogation-2' ? 1 : 0
-      const target = suspects[index] ?? suspects[0]
+      // A room seated with a suspect goes to that interrogation; an unseated
+      // case-board room still opens the notebook.
+      const seating = assignSuspectsToRooms(suspects)
+      const target = seating[roomId]
       if (target) {
         router.push(`/interrogation/${target.suspectId}`)
+        return
+      }
+      if (roomId === 'case-board') {
+        router.push('/notebook')
       }
     },
     [router, suspects]
@@ -105,7 +108,25 @@ export default function StationPage() {
           overflow: 'hidden'
         }}
       >
-        <PhaserStation onEnterRoom={handleEnterRoom} />
+        {suspects.length > 0 ? (
+          <PhaserStation onEnterRoom={handleEnterRoom} suspects={suspects} />
+        ) : (
+          <div
+            data-testid="phaser-station"
+            style={{
+              width: '100%',
+              aspectRatio: '800 / 600',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--paper-faint)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.85rem'
+            }}
+          >
+            Bringing the precinct online…
+          </div>
+        )}
         <div
           aria-hidden="true"
           style={{

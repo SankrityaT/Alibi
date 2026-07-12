@@ -3,9 +3,14 @@
 import { useEffect, useRef } from 'react'
 import type Phaser from 'phaser'
 import { computeNextPosition, detectRoomEntry } from '../../lib/station/movement.js'
-import { rooms, STATION_BOUNDS } from '../../lib/station/rooms.js'
-import { PORTRAIT_SPRITES } from '../../lib/station/portraits.js'
+import { rooms, STATION_BOUNDS, assignSuspectsToRooms } from '../../lib/station/rooms.js'
+import { PORTRAIT_SPRITES, portraitForSuspect } from '../../lib/station/portraits.js'
 import type { Position, TrackedKey } from '../../lib/station/types.js'
+
+export interface StationSuspect {
+  suspectId: string
+  name: string
+}
 
 // Every distinct furniture tile referenced by a room interior, keyed by its
 // sprite name. The Phaser key doubles as the file basename under /sprites.
@@ -23,14 +28,17 @@ export function portraitKey(path: string): string {
 
 export interface PhaserStationProps {
   onEnterRoom: (roomId: string) => void
+  suspects: StationSuspect[]
 }
 
 const START_POSITION: Position = { x: 400, y: 300 }
 
-export function PhaserStation({ onEnterRoom }: PhaserStationProps) {
+export function PhaserStation({ onEnterRoom, suspects }: PhaserStationProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const onEnterRoomRef = useRef(onEnterRoom)
   onEnterRoomRef.current = onEnterRoom
+  const suspectsRef = useRef(suspects)
+  suspectsRef.current = suspects
 
   useEffect(() => {
     let game: Phaser.Game | undefined
@@ -106,6 +114,34 @@ export function PhaserStation({ onEnterRoom }: PhaserStationProps) {
                 .setScale(2)
                 .setDepth(2)
             })
+          }
+
+          // Seat each suspect in their room: a portrait at the desk with a
+          // nameplate beneath, so every occupied corner shows who is waiting.
+          const seating = assignSuspectsToRooms(suspectsRef.current)
+          for (const room of rooms) {
+            const suspect = seating[room.id]
+            if (!suspect || !room.interior) continue
+            const { rect } = room.interior
+            const cx = rect.x + rect.width / 2
+            const cy = rect.y + rect.height / 2
+            this.add
+              .sprite(cx, cy - 6, portraitKey(portraitForSuspect(suspect.suspectId)))
+              .setScale(2.4)
+              .setDepth(6)
+            // Nameplate: place below the portrait, nudged inward at the bottom
+            // room so it never clips the canvas edge.
+            const plateY = room.id === 'interrogation-2' ? cy - 34 : cy + 30
+            this.add
+              .text(cx, plateY, suspect.name, {
+                fontFamily: 'monospace',
+                fontSize: '13px',
+                color: '#e8dfc8',
+                backgroundColor: '#050403',
+                padding: { x: 6, y: 3 }
+              })
+              .setOrigin(0.5)
+              .setDepth(7)
           }
 
           this.player = this.add.sprite(position.x, position.y, 'detective')

@@ -540,3 +540,74 @@ input {
   color: var(--paper-dim);
   white-space: pre-wrap;
 }
+
+/* Loading screen (case assembly) */
+.blink-cursor {
+  color: var(--accent-bright);
+  animation: blink-cursor 1s steps(1) infinite;
+}
+
+@keyframes sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes slide {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(360%);
+  }
+}
+
+/* AI question hints (interrogation) */
+.hintbar {
+  position: absolute;
+  left: 50%;
+  bottom: 5.4rem;
+  transform: translateX(-50%);
+  z-index: 21;
+  width: min(760px, 92vw);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  background: rgba(6, 6, 10, 0.9);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.5rem 0.6rem;
+}
+.hintbar__label {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.62rem;
+  color: var(--amber);
+  opacity: 0.85;
+}
+.hintbar__loading {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--paper-faint);
+}
+.hint-chip {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--paper);
+  background: rgba(212, 149, 46, 0.1);
+  border: 1px solid rgba(212, 149, 46, 0.5);
+  border-radius: 999px;
+  padding: 0.28rem 0.7rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.hint-chip:hover:not(:disabled) {
+  background: rgba(212, 149, 46, 0.2);
+  border-color: var(--amber);
+}
+.hint-chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

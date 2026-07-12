@@ -26,7 +26,14 @@ describe('HomePage', () => {
   })
 
   it('starts a case at the chosen difficulty then navigates to the case brief', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({}) })
+    // URL-aware: new-game succeeds, and the readiness probe reports ready
+    // immediately so the loading screen advances straight to the brief.
+    const fetchMock = vi.fn((url: string) => {
+      if (typeof url === 'string' && url.startsWith('/api/case-ready')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ ready: true }) })
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({}) })
+    })
     vi.stubGlobal('fetch', fetchMock)
 
     render(<HomePage />)

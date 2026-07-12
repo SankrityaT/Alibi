@@ -112,6 +112,9 @@ describe('InterrogationPage', () => {
       if (typeof url === 'string' && url.startsWith('/api/case')) {
         return { ok: true, status: 200, json: async () => ({ started: true, suspects: [] }) }
       }
+      if (typeof url === 'string' && url.startsWith('/api/suggest-questions')) {
+        return { ok: true, status: 200, json: async () => ({ questions: [] }) }
+      }
       const body = answers[idx++] ?? answers[answers.length - 1]
       return { ok: true, status: 200, json: async () => body }
     })

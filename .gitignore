@@ -8,3 +8,7 @@ dist/
 
 # local playwright screenshots
 brief-*.png
+loading-screen.png
+station-suspects.png
+interrogation-hints.png
+hints-answered.png
