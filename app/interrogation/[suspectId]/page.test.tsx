@@ -27,6 +27,7 @@ vi.mock('../../../lib/stt/useMicTranscription.js', () => ({
 }))
 
 import InterrogationPage from './page.js'
+import { portraitForSuspect } from '../../../lib/station/portraits.js'
 
 function stubFetchOnce(responseBody: unknown, ok = true, status = 200) {
   return vi.fn().mockResolvedValue({
@@ -88,6 +89,15 @@ describe('InterrogationPage', () => {
     expect(screen.getByTestId('memory-trace-panel').textContent).toContain(
       'Rerouted Theo at 21:45.'
     )
+  })
+
+  it('renders the suspect portrait in the header beside the name', () => {
+    render(<InterrogationPage params={{ suspectId: 'mara' }} />)
+
+    const portrait = screen.getByAltText('Portrait of Mara') as HTMLImageElement
+    // jsdom resolves relative srcs against the document base URL; assert the
+    // pathname matches the deterministic portrait mapping.
+    expect(new URL(portrait.src).pathname).toBe(portraitForSuspect('mara'))
   })
 
   it('accumulates a persistent transcript across multiple questions', async () => {

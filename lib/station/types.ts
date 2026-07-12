@@ -5,10 +5,19 @@ export interface Rect {
   height: number
 }
 
+export interface RoomInterior {
+  // Sprite keys (loaded in the Phaser scene) that furnish this room.
+  tiles: string[]
+  // Region of the station canvas the furniture occupies. Stays within
+  // STATION_BOUNDS; purely decorative, independent of the doorTrigger band.
+  rect: Rect
+}
+
 export interface Room {
   id: string
   name: string
   doorTrigger: Rect
+  interior?: RoomInterior
 }
 
 export interface Position {

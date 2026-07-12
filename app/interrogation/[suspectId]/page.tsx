@@ -5,6 +5,7 @@ import { DialogueBox } from '../../../components/interrogation/DialogueBox.js'
 import { MemoryTracePanel } from '../../../components/interrogation/MemoryTracePanel.js'
 import { EvidenceActions } from '../../../components/investigation/EvidenceActions.js'
 import { AccusePanel } from '../../../components/case/AccusePanel.js'
+import { portraitForSuspect } from '../../../lib/station/portraits.js'
 import { useSpokenLine } from '../../../lib/tts/useSpokenLine.js'
 import { useMicTranscription } from '../../../lib/stt/useMicTranscription.js'
 import { fallbackCase } from '../../../content/cases/fallbackCase.js'
@@ -131,20 +132,41 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
           <span className="uppercase-label" style={{ display: 'block' }}>
             Interrogation Room 1
           </span>
-          <h1
+          <div
             style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(2.5rem, 8vw, 4rem)',
-              letterSpacing: '0.05em',
-              margin: '0.25rem 0 0',
-              color: 'var(--paper)',
-              borderBottom: '2px solid var(--accent)',
-              paddingBottom: '0.6rem',
-              display: 'inline-block'
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '1rem',
+              marginTop: '0.25rem'
             }}
           >
-            Suspect: {displayName(params.suspectId)}
-          </h1>
+            {/* Consistent pixel-art portrait for this suspect. */}
+            <img
+              src={portraitForSuspect(params.suspectId)}
+              alt={`Portrait of ${displayName(params.suspectId)}`}
+              width={64}
+              height={64}
+              style={{
+                imageRendering: 'pixelated',
+                border: '2px solid var(--accent)',
+                background: 'var(--bg-panel)'
+              }}
+            />
+            <h1
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'clamp(2.5rem, 8vw, 4rem)',
+                letterSpacing: '0.05em',
+                margin: 0,
+                color: 'var(--paper)',
+                borderBottom: '2px solid var(--accent)',
+                paddingBottom: '0.6rem'
+              }}
+            >
+              Suspect: {displayName(params.suspectId)}
+            </h1>
+          </div>
         </header>
 
         {/* Memory ON/OFF toggle — the demo's proof that the game needs Supermemory. */}

@@ -4,7 +4,22 @@ import { useEffect, useRef } from 'react'
 import type Phaser from 'phaser'
 import { computeNextPosition, detectRoomEntry } from '../../lib/station/movement.js'
 import { rooms, STATION_BOUNDS } from '../../lib/station/rooms.js'
+import { PORTRAIT_SPRITES } from '../../lib/station/portraits.js'
 import type { Position, TrackedKey } from '../../lib/station/types.js'
+
+// Every distinct furniture tile referenced by a room interior, keyed by its
+// sprite name. The Phaser key doubles as the file basename under /sprites.
+export const INTERIOR_TILE_KEYS: string[] = Array.from(
+  new Set(rooms.flatMap((room) => room.interior?.tiles ?? []))
+)
+
+// Stable Phaser texture key for a portrait asset path (…/suspect-3.png →
+// 'portrait-suspect-3'), so the scene can preload the same portraits the
+// interrogation header renders as <img>.
+export function portraitKey(path: string): string {
+  const file = path.split('/').pop() ?? path
+  return `portrait-${file.replace(/\.png$/, '')}`
+}
 
 export interface PhaserStationProps {
   onEnterRoom: (roomId: string) => void
@@ -37,6 +52,16 @@ export function PhaserStation({ onEnterRoom }: PhaserStationProps) {
         preload() {
           this.load.image('floor', '/sprites/floor.png')
           this.load.image('detective', '/sprites/detective.png')
+          // Furniture tiles for the per-room interiors (walls, desks,
+          // shelving, corkboard).
+          for (const key of INTERIOR_TILE_KEYS) {
+            this.load.image(key, `/sprites/${key}.png`)
+          }
+          // Suspect portraits, so the station can show a consistent face per
+          // suspect (also rendered in the interrogation header).
+          for (const path of PORTRAIT_SPRITES) {
+            this.load.image(portraitKey(path), path)
+          }
         }
 
         create() {
@@ -55,6 +80,32 @@ export function PhaserStation({ onEnterRoom }: PhaserStationProps) {
             const { x, y, width: w, height: h } = room.doorTrigger
             doorGraphics.fillStyle(0xd4952e, 0.55)
             doorGraphics.fillRect(x, y, w, h)
+          }
+
+          // Furnish each room: the first tile tiles the whole region as a
+          // wall/backing, and any further tiles (desk, shelf, corkboard) sit
+          // centred on top so the space reads as an actual interior.
+          for (const room of rooms) {
+            if (!room.interior) continue
+            const { rect, tiles } = room.interior
+            const [backing, ...props] = tiles
+            if (backing) {
+              this.add
+                .tileSprite(
+                  rect.x + rect.width / 2,
+                  rect.y + rect.height / 2,
+                  rect.width,
+                  rect.height,
+                  backing
+                )
+                .setDepth(1)
+            }
+            props.forEach((prop, index) => {
+              this.add
+                .sprite(rect.x + rect.width / 2, rect.y + rect.height / 2 - index * 20, prop)
+                .setScale(2)
+                .setDepth(2)
+            })
           }
 
           this.player = this.add.sprite(position.x, position.y, 'detective')
