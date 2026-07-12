@@ -32,17 +32,19 @@ export default function HomePage() {
   const router = useRouter()
   const [phase, setPhase] = useState<'idle' | 'loading'>('idle')
   const [chosen, setChosen] = useState<Difficulty | null>(null)
-  const [beat, setBeat] = useState(0)
+  const [status, setStatus] = useState<'assembling' | 'indexing'>('assembling')
+  const [elapsed, setElapsed] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [aiGenerate, setAiGenerate] = useState(false)
   const cancelledRef = useRef(false)
 
   useEffect(() => () => { cancelledRef.current = true }, [])
 
-  // Advance the story beats while loading.
+  // Tick an elapsed-seconds counter while loading so the screen visibly moves
+  // and can never look silently frozen.
   useEffect(() => {
     if (phase !== 'loading') return
-    const id = setInterval(() => setBeat((b) => b + 1), 2200)
+    const id = setInterval(() => setElapsed((e) => e + 1), 1000)
     return () => clearInterval(id)
   }, [phase])
 
@@ -64,8 +66,12 @@ export default function HomePage() {
   async function startCase(difficulty: Difficulty) {
     setChosen(difficulty)
     setPhase('loading')
-    setBeat(0)
+    setStatus('assembling')
+    setElapsed(0)
     setError(null)
+    const t0 = Date.now()
+    // eslint-disable-next-line no-console
+    console.info(`[alibi] ▶ start ${difficulty} case ${aiGenerate ? '(AI-generated)' : '(curated)'}`)
     // Hard ceiling so a wedged generation can never leave the loading screen
     // spinning forever — the server bounds generation to 60s + falls back, so
     // 120s here is pure backstop before we bail to a retry.
@@ -80,10 +86,17 @@ export default function HomePage() {
       })
       if (!response.ok) {
         const body = await response.json().catch(() => ({}))
+        // eslint-disable-next-line no-console
+        console.error('[alibi] ✗ new-game failed', response.status, body)
         setError(typeof body.error === 'string' ? body.error : 'Could not start the case.')
         setPhase('idle')
         return
       }
+      const started = await response.json().catch(() => ({}))
+      // eslint-disable-next-line no-console
+      console.info(
+        `[alibi] ✓ case assembled in ${((Date.now() - t0) / 1000).toFixed(1)}s: "${started.title}" — ${(started.suspects || []).length} suspects`
+      )
       try {
         sessionStorage.setItem('alibi:caseStartedAt', String(Date.now()))
       } catch {
@@ -91,10 +104,15 @@ export default function HomePage() {
       }
       // Hold on the loading screen until the suspects' memories are actually
       // searchable, so the first interrogation is never empty.
+      setStatus('indexing')
       await waitForMemoriesReady()
+      // eslint-disable-next-line no-console
+      console.info(`[alibi] ✓ memories ready in ${((Date.now() - t0) / 1000).toFixed(1)}s — entering the case`)
       if (!cancelledRef.current) router.push('/brief')
     } catch (err) {
       const timedOut = err instanceof DOMException && err.name === 'AbortError'
+      // eslint-disable-next-line no-console
+      console.error('[alibi] ✗ start failed', err)
       setError(
         timedOut
           ? 'The case took too long to assemble. Please try again.'
@@ -107,7 +125,7 @@ export default function HomePage() {
   }
 
   if (phase === 'loading') {
-    return <LoadingScreen beat={beat} difficulty={chosen} />
+    return <LoadingScreen elapsed={elapsed} status={status} difficulty={chosen} />
   }
 
   return (
@@ -259,8 +277,19 @@ export default function HomePage() {
   )
 }
 
-function LoadingScreen({ beat, difficulty }: { beat: number; difficulty: Difficulty | null }) {
+function LoadingScreen({
+  elapsed,
+  status,
+  difficulty
+}: {
+  elapsed: number
+  status: 'assembling' | 'indexing'
+  difficulty: Difficulty | null
+}) {
+  const beat = Math.floor(elapsed / 2.5)
   const line = LOADING_BEATS[Math.min(beat, LOADING_BEATS.length - 1)]
+  const phaseLabel =
+    status === 'assembling' ? 'Assembling the case file' : 'Waking the suspects’ memories'
   return (
     <main
       role="status"
@@ -293,7 +322,7 @@ function LoadingScreen({ beat, difficulty }: { beat: number; difficulty: Difficu
       <div className="scene__grain-scan" aria-hidden="true" />
 
       <span className="uppercase-label" style={{ letterSpacing: '0.4em', color: 'var(--accent-bright)' }}>
-        {difficulty ? `${difficulty} case` : 'New case'} &mdash; assembling
+        {difficulty ? `${difficulty} case` : 'New case'} &mdash; {status}
       </span>
 
       {/* case-file stamp */}
@@ -364,6 +393,22 @@ function LoadingScreen({ beat, difficulty }: { beat: number; difficulty: Difficu
       >
         {line}
         <span className="blink-cursor">▋</span>
+      </p>
+
+      {/* Concrete phase + live elapsed — proof it's actually moving. */}
+      <p
+        aria-live="polite"
+        style={{
+          fontFamily: 'var(--font-mono)',
+          color: 'var(--amber)',
+          fontSize: '0.8rem',
+          letterSpacing: '0.08em',
+          margin: 0,
+          zIndex: 1
+        }}
+      >
+        ● {phaseLabel} &middot; {elapsed}s
+        {elapsed >= 30 ? ' — hang tight, first case seeds the memories' : ''}
       </p>
 
       <p

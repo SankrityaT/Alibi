@@ -44,5 +44,16 @@ export async function POST(request: Request): Promise<Response> {
 
   const result = await handleInterrogateRequest(body, { supermemory, anthropic, suspects })
 
+  // Monitor line: how many memories grounded this answer (0 with memory OFF).
+  const rb = result.body as { retrievedMemories?: unknown[] }
+  const retrieved = Array.isArray(rb?.retrievedMemories) ? rb.retrievedMemories.length : 0
+  const sid =
+    typeof (body as { suspectId?: unknown })?.suspectId === 'string'
+      ? (body as { suspectId: string }).suspectId
+      : '?'
+  console.log(
+    `[interrogate] suspect=${sid} memory=${memoryEnabled ? 'ON' : 'OFF'} retrieved=${retrieved} memories -> ${result.status}`
+  )
+
   return Response.json(result.body, { status: result.status })
 }

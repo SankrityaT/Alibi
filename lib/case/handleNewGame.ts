@@ -80,13 +80,17 @@ export async function handleNewGame(
     caseFile = curated
   }
 
+  const source = wantsGeneration ? 'generated' : caseFile === fallback ? 'fallback' : 'curated'
   try {
-    await seed(caseFile, { supermemory: deps.supermemory })
+    const seedResult = await seed(caseFile, { supermemory: deps.supermemory })
+    console.log(
+      `[new-game] ${difficulty} "${caseFile.title}" (${source}) — seeded ${seedResult.memoriesWritten} facts across ${seedResult.suspectsSeeded} suspects; extraction runs async`
+    )
   } catch (err) {
     // Seeding failed (e.g. Supermemory down or restarting mid-request). Never
     // hang or 500 over it — set the case active so the UI proceeds; retrieval
     // may be partial and the player can start a fresh case.
-    console.warn('[new-game] seeding failed:', err instanceof Error ? err.message : err)
+    console.warn(`[new-game] ${difficulty} "${caseFile.title}" — seeding FAILED:`, err instanceof Error ? err.message : err)
   }
   setActiveCase(caseFile)
 
