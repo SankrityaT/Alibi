@@ -38,7 +38,17 @@ export default function HomePage() {
   const [aiGenerate, setAiGenerate] = useState(false)
   const cancelledRef = useRef(false)
 
-  useEffect(() => () => { cancelledRef.current = true }, [])
+  // Reset on (re)mount, not just set-true on unmount. React 18 Strict Mode
+  // mounts→unmounts→remounts in dev; without resetting here the cleanup left
+  // cancelledRef.current = true forever, which silently blocked router.push
+  // ('/brief') and short-circuited the readiness loop — the "stuck on loading"
+  // bug. Resetting on mount keeps the unmount-guard without the false positive.
+  useEffect(() => {
+    cancelledRef.current = false
+    return () => {
+      cancelledRef.current = true
+    }
+  }, [])
 
   // Tick an elapsed-seconds counter while loading so the screen visibly moves
   // and can never look silently frozen.
