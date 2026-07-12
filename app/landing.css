@@ -1,0 +1,1137 @@
+/* created by kinjal
+   Alibi landing design system — ISOLATED from globals.css.
+   Imported only by / and /leaderboard. Body theming is scoped through
+   body:has(.alibi-landing) so /station and /interrogation are untouched.
+   Palette + type per the approved Alibi spec (PostHog logic, not brand). */
+
+:root {
+  /* --- color tokens (exact, do not substitute) --- */
+  --canvas: #ece0c3;          /* page bg, warm aged paper */
+  --card: #f8f2e2;            /* cards, index-card stock */
+  --ink: #2a2015;             /* headlines, high-contrast text */
+  --body: #57493a;           /* paragraphs, UI copy */
+  --muted: #8c7d64;          /* captions, timestamps, secondary */
+  --hairline: #c9b78e;       /* card borders, dividers, thin rules */
+  --hairline-strong: #b3a07a;
+  --accent: #b3271b;          /* the one saturated color: CTA, stamps, red string */
+  --accent-pressed: #8f1f15;  /* hover/active for accent */
+  --accent-soft: rgba(179, 39, 27, 0.08);
+  --amber: #c98a2e;          /* rare secondary: folder tabs, evidence borders — never a CTA */
+  --screen: #16130f;          /* actual screen content only */
+  --screen-text: #e8dfc8;     /* text inside screen panels only */
+  --screen-dim: #a89b7d;
+
+  /* --- type --- */
+  --font-display: var(--font-bebas), 'Arial Narrow', sans-serif;
+  --font-mono: var(--font-plex-mono), 'Courier New', monospace;
+
+  /* --- spacing (8px base) --- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-section: clamp(48px, 8vw, 80px);
+
+  /* --- radius (zero: pixel art has no curves) --- */
+  --r-sm: 0;
+  --r-md: 0;
+  --r-lg: 0;
+  --r-full: 0;
+
+  --maxw: 1180px;
+  --gutter: clamp(1.1rem, 4vw, 2.5rem);
+  --nav-height: 56px;
+}
+
+/* =========================================================================
+   BODY THEME — only when the landing page is mounted. Leaves other routes
+   on their original dark noir body.
+   ========================================================================= */
+body:has(.alibi-landing) {
+  background: var(--canvas);
+  color: var(--body);
+}
+/* the global grain + vignette are a dark-noir device; suppress them on the
+   paper landing page — grain/scanlines live ONLY inside .screen-panel. */
+body:has(.alibi-landing) .grain-overlay,
+body:has(.alibi-landing) .vignette-overlay {
+  display: none;
+}
+
+/* =========================================================================
+   LAYOUT
+   ========================================================================= */
+.alibi-landing {
+  --font-pixel-resolved: var(--font-pixel), 'Courier New', monospace;
+  --font-press-resolved: var(--font-press), 'Courier New', monospace;
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-mono);
+  color: var(--body);
+  /* detective magnifier cursor — the visitor is the investigator */
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><circle cx='9' cy='9' r='6' fill='rgba(0,0,0,0.05)' stroke='%232a2015' stroke-width='2'/><line x1='13.5' y1='13.5' x2='21' y2='21' stroke='%232a2015' stroke-width='3' stroke-linecap='round'/></svg>") 9 9, auto;
+}
+.alibi-landing a,
+.alibi-landing button,
+.alibi-landing [role='button'],
+.alibi-landing summary {
+  cursor: inherit;
+}
+.section {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: var(--sp-section) var(--gutter);
+  scroll-margin-top: var(--nav-height);
+}
+.section--bleed { max-width: 100%; }
+.section-head { max-width: 60ch; }
+
+.eyebrow {
+  font-family: var(--font-pixel);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.56rem;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.eyebrow::before {
+  content: '';
+  width: 18px;
+  height: 3px;
+  background: var(--accent);
+  display: inline-block;
+}
+.section-title {
+  font-family: var(--font-pixel);
+  font-size: clamp(1.4rem, 3.2vw, 2rem);
+  line-height: 1.1;
+  letter-spacing: 0.06em;
+  margin: 0.7rem 0 0;
+  color: var(--ink);
+}
+.section-lede {
+  font-size: 0.96rem;
+  line-height: 1.7;
+  color: var(--body);
+  margin: 0.9rem 0 0;
+  max-width: 56ch;
+}
+
+/* rubber-stamp label */
+.stamp {
+  display: inline-block;
+  font-family: var(--font-pixel);
+  letter-spacing: 0.06em;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  padding: 0.18rem 0.5rem;
+  transform: rotate(-6deg);
+  background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(0,0,0,0.05) 3px 4px);
+}
+
+/* "planned" honesty tag */
+.tag-planned {
+  display: inline-block;
+  font-family: var(--font-pixel);
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--amber);
+  border: 2px solid var(--amber);
+  padding: 0.1rem 0.35rem;
+  vertical-align: middle;
+  margin-left: 0.4rem;
+}
+.tag-planned.easy { color: #5a6e44; border-color: #5a6e44; }
+.tag-planned.med { color: var(--amber); border-color: var(--amber); }
+.tag-planned.hard { color: var(--accent); border-color: var(--accent); }
+
+/* =========================================================================
+   BUTTONS
+   ========================================================================= */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-pixel);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+  font-weight: 400;
+  padding: 0.7rem 1.4rem;
+  border-radius: 0;
+  border: 3px solid transparent;
+  text-decoration: none;
+  transition: transform 0s, box-shadow 0s;
+}
+.btn--primary {
+  background: var(--accent);
+  color: var(--card);
+  border-color: var(--accent);
+  box-shadow: 3px 3px 0 var(--accent-pressed);
+}
+.btn--primary:hover,
+.btn--primary:focus-visible {
+  background: var(--accent-pressed);
+  border-color: var(--accent-pressed);
+  box-shadow: 1px 1px 0 var(--accent-pressed);
+  transform: translate(2px, 2px);
+}
+.btn--secondary {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.btn--secondary:hover,
+.btn--secondary:focus-visible {
+  background: var(--ink);
+  color: var(--card);
+  box-shadow: 1px 1px 0 var(--ink);
+  transform: translate(2px, 2px);
+}
+.btn--sm { padding: 0.45rem 0.9rem; font-size: 0.58rem; }
+.btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* =========================================================================
+   CARDS — flat, hairline, no shadows (PostHog discipline)
+   ========================================================================= */
+.card {
+  background: var(--card);
+  border: 3px solid var(--hairline-strong);
+  border-radius: 0;
+  padding: var(--sp-5);
+  position: relative;
+  box-shadow: 4px 4px 0 var(--hairline-strong);
+  transition: transform 0s, box-shadow 0s;
+}
+.card--pad-sm { padding: var(--sp-4); }
+.card:hover {
+  box-shadow: 2px 2px 0 var(--hairline-strong);
+  transform: translate(2px, 2px);
+}
+.card-title {
+  font-family: var(--font-pixel);
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  margin: 0 0 0.4rem;
+  color: var(--ink);
+}
+.card-body {
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: var(--body);
+  margin: 0;
+}
+.card-tag {
+  font-family: var(--font-pixel);
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: block;
+  margin-bottom: 0.6rem;
+}
+
+/* mascot-anchored card — pixel suspect / evidence icon pinned in the corner */
+.card--mascot {
+  padding-top: var(--sp-6);
+}
+.mascot {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  color: var(--amber);
+}
+.mascot img { width: 100%; height: 100%; object-fit: contain; }
+
+/* folder tab — amber, never a CTA */
+.folder-tab {
+  display: inline-block;
+  font-family: var(--font-pixel);
+  font-size: 0.52rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--amber);
+  padding: 0.25rem 0.6rem;
+  border-radius: 0;
+}
+
+/* evidence tag — amber border, redaction-flash on hover */
+.evidence-tag {
+  position: relative;
+  display: inline-block;
+  font-family: var(--font-pixel);
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  border: 2px solid var(--amber);
+  padding: 0.22rem 0.5rem;
+  background: rgba(201, 138, 46, 0.08);
+  overflow: hidden;
+}
+.evidence-tag::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  transform: scaleX(0);
+  transform-origin: left center;
+  pointer-events: none;
+}
+.evidence-tag:hover::after {
+  animation: redact-sweep 0.4s steps(1) forwards;
+}
+@keyframes redact-sweep {
+  0% { transform: scaleX(1); opacity: 0.92; }
+  65% { transform: scaleX(1); opacity: 0; }
+  100% { transform: scaleX(0); opacity: 0; }
+}
+
+/* =========================================================================
+   SCREEN PANEL — dark surface, only for demo / terminal / memory-toggle.
+   This is where scanlines, glow and grain live. The contrast with the cream
+   cards around it is the page's whole visual argument.
+   ========================================================================= */
+.screen-panel {
+  background: var(--screen);
+  color: var(--screen-text);
+  border: 3px solid #000;
+  border-radius: 0;
+  padding: var(--sp-5);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 4px 4px 0 #000;
+}
+.screen-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.32) 0 1px, transparent 1px 3px);
+  pointer-events: none;
+  z-index: 1;
+  animation: scan-drift 6s linear infinite;
+}
+.screen-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 52%, rgba(0,0,0,0.55) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+.screen-panel > * { position: relative; z-index: 2; }
+.screen-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+@keyframes scan-drift {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(3px); }
+}
+.screen-label {
+  font-family: var(--font-pixel);
+  font-size: 0.5rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin: 0 0 0.8rem;
+}
+.terminal {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.85;
+  color: var(--screen-text);
+}
+.terminal .prompt { color: var(--amber); }
+.terminal .comment { color: var(--screen-dim); }
+
+/* =========================================================================
+   NAV
+   ========================================================================= */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 90;
+  height: var(--nav-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 var(--gutter);
+  background: #33254e;
+  box-sizing: border-box;
+}
+.nav-wordmark {
+  font-family: var(--font-press-resolved);
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+  color: var(--screen-text);
+  text-decoration: none;
+}
+.nav-wordmark .dot { color: var(--accent); }
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.7rem, 2vw, 1.6rem);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.nav-links a {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--screen-text);
+  text-decoration: none;
+  font-family: var(--font-pixel-resolved);
+}
+.nav-links a:hover { color: #fff; }
+
+/* =========================================================================
+   HERO + DESK / CORKBOARD SCENE
+   ========================================================================= */
+.hero-wrap {
+  position: relative;
+  overflow: hidden;
+  background: #864a62;
+  margin-top: var(--nav-height);
+  height: calc(100vh - var(--nav-height));
+  height: calc(100dvh - var(--nav-height));
+}
+/* --- town scene: captured GothicVania demo frame (430x272 native) ---------
+   The single pixel-art asset filling the ENTIRE viewport-height hero
+   (background-size: cover), so nothing else — no paper section, no other
+   color — is visible until the visitor scrolls. Cover crops the image on
+   whichever axis overflows rather than distorting it. It's the ONLY
+   background layer: the old parallax sky/middleground layers were a
+   different, mismatched art asset and are no longer used, so nothing else
+   can show through and create a seam or duplicate. Because cover crops
+   differently at every aspect ratio, the townfolk overlays (pinned to fixed
+   coordinates in the source frame) are hidden below the 960px breakpoint
+   where the crop would drift them off their beam/crates — see RESPONSIVE. */
+.town-scene {
+  --px: calc(100vw / 430 / 1px);
+  position: absolute;
+  inset: 0;
+  background: url('/assets/gothicvania/town-scene.png') center top / cover no-repeat;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Overlaid townfolk, pinned to their demo-frame coordinates (sprite box
+   top-left, scene pixels): hat-man 39x52 at (268,76) on the gallows beam,
+   bearded man 40x47 at (60,193) by the crates and barrels. Only accurate
+   when .town-scene's cover-crop keeps the full width in frame (see
+   RESPONSIVE for the narrow-viewport cutoff). */
+.townfolk {
+  position: absolute;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+.townfolk-hatman {
+  left: calc(var(--px) * 268px);
+  top: calc(var(--px) * 76px);
+  width: calc(var(--px) * 39px);
+  height: calc(var(--px) * 52px);
+}
+.townfolk-patrol,
+.townfolk-flip,
+.townfolk-sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* bounded walk along the beam: a few steps right, turn, a few steps back */
+.townfolk-patrol { animation: hatman-patrol 5.6s linear infinite; }
+.townfolk-flip { animation: hatman-face 5.6s step-end infinite; }
+.townfolk-hatman .townfolk-sprite {
+  background: url('/assets/gothicvania/characters/hat-man/walk.png') 0 0 /
+    calc(var(--px) * 234px) calc(var(--px) * 52px) no-repeat;
+  animation: hatman-step 0.6s steps(6) infinite;
+}
+.townfolk-bearded {
+  left: calc(var(--px) * 60px);
+  top: calc(var(--px) * 193px);
+  width: calc(var(--px) * 40px);
+  height: calc(var(--px) * 47px);
+  background: url('/assets/gothicvania/characters/bearded/idle.png') 0 0 /
+    calc(var(--px) * 200px) calc(var(--px) * 47px) no-repeat;
+  /* demo timing: frames 1-3 at 10fps, then frame 4 held for 1.2s */
+  animation: bearded-idle 1.5s step-end infinite;
+}
+@keyframes hatman-patrol {
+  0%   { transform: translateX(calc(var(--px) * -28px)); }
+  45%  { transform: translateX(calc(var(--px) * 28px)); }
+  50%  { transform: translateX(calc(var(--px) * 28px)); }
+  95%  { transform: translateX(calc(var(--px) * -28px)); }
+  100% { transform: translateX(calc(var(--px) * -28px)); }
+}
+@keyframes hatman-face {
+  0%   { transform: scaleX(1); }
+  47.5% { transform: scaleX(-1); }
+  97.5%, 100% { transform: scaleX(1); }
+}
+@keyframes hatman-step {
+  to { background-position: calc(var(--px) * -234px) 0; }
+}
+@keyframes bearded-idle {
+  0%        { background-position: 0 0; }
+  6.7%      { background-position: calc(var(--px) * -40px) 0; }
+  13.3%     { background-position: calc(var(--px) * -80px) 0; }
+  20%, 100% { background-position: calc(var(--px) * -120px) 0; }
+}
+
+/* Composed against the scene's own geometry rather than stacked as one
+   centered column: the roof is a wide, flat, dark triangle spanning the
+   left ~60% of the frame (perfect for a full-width headline), the sky to
+   its right is clear (subhead lives there), and the wall between the
+   window and the well/gallows is the calmest patch of the whole scene
+   (CTA lives there). Each piece is positioned independently against the
+   full viewport, not the --maxw content column, since the scene itself is
+   full-bleed. */
+.hero {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+}
+.hero-headline {
+  position: absolute;
+  left: 52vw;
+  top: 14vh;
+}
+.hero h1 {
+  font-family: var(--font-press-resolved);
+  font-size: clamp(7rem, 3.5vw, 4.5rem);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  margin: 0;
+  color: var(--screen-text);
+  text-shadow: 0 4px 18px rgba(0,0,0,0.65), 0 1px 0 rgba(0,0,0,0.5);
+  white-space: nowrap;
+}
+.hero-sub-wrap {
+  position: absolute;
+  left: 0;
+  top: 10vh;
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 55vw;
+  box-sizing: border-box;
+  text-align: right;
+}
+.hero-sub {
+  font-family: var(--font-pixel-resolved);
+  font-size: clamp(1.5rem, 1.3vw, 0.92rem);
+  line-height: 1.65;
+  color: var(--screen-text);
+  margin: 0;
+  max-width: 26ch;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.7);
+}
+.hero-sub .red {
+  color: #ff8577;
+  font-weight: 700;
+}
+.hero-ctas {
+  position: absolute;
+  left: 46%;
+  top: 63%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+/* Nintendo-brutalist CTA: thick pixel border, chunky offset shadow that
+   reads as a physical block, and a hard snap-down press instead of a
+   smooth transition. Scoped to the hero only. */
+.hero-ctas .btn {
+  padding: 1.1rem 2.4rem;
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+  border: 4px solid var(--ink);
+  box-shadow: 6px 6px 0 var(--ink);
+  transition: none;
+}
+.hero-ctas .btn:hover {
+  transform: translate(3px, 3px);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.hero-ctas .btn:active {
+  transform: translate(6px, 6px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+/* evidence board (in features section) */
+.evidence-board-wrap {
+  margin: var(--sp-6) 0;
+}
+.scene {
+  position: relative;
+  border: 4px solid #5a4a3a;
+  border-radius: 0;
+  background: #3a2e22;
+  padding: var(--sp-5);
+  min-height: 320px;
+  overflow: hidden;
+  box-shadow: 6px 6px 0 rgba(0,0,0,0.5);
+}
+.scene-label {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  z-index: 3;
+}
+.corkboard {
+  position: relative;
+  border: 3px solid #6a5a4a;
+  border-radius: 0;
+  background: #4a3c2e;
+  padding: var(--sp-4);
+  min-height: 180px;
+}
+.corkboard-string {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+.photo {
+  position: absolute;
+  width: 78px;
+  background: var(--card);
+  border: 3px solid #5a4a3a;
+  border-radius: 0;
+  padding: 6px 6px 16px;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.4);
+  z-index: 3;
+}
+.photo .photo-slot {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: #2a2015;
+  border: 2px solid #5a4a3a;
+  display: grid;
+  place-items: center;
+  color: var(--screen-dim);
+  font-family: var(--font-pixel-resolved);
+  font-size: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.photo .photo-cap {
+  font-family: var(--font-pixel-resolved);
+  font-size: 0.46rem;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.pushpin {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 0;
+  background: var(--accent);
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+  z-index: 4;
+}
+.pushpin--amber {
+  background: var(--amber);
+}
+.desk-strip {
+  position: relative;
+  margin-top: var(--sp-4);
+  border-top: 4px solid #5a4a3a;
+  padding-top: var(--sp-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.desk-strip .blotter {
+  font-family: var(--font-pixel-resolved);
+  font-size: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--screen-dim);
+}
+.case-folder {
+  border: 3px solid #5a4a3a;
+  border-radius: 0;
+  background: var(--card);
+  padding: 0.5rem 0.7rem 0.6rem;
+  position: relative;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.4);
+}
+.case-folder .folder-tab { position: absolute; top: -14px; left: 10px; }
+.case-folder .folder-line {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--body);
+}
+
+/* =========================================================================
+   HOOK — WEAPON vs LENS
+   ========================================================================= */
+.hook-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  margin-top: var(--sp-6);
+}
+.hook-col { padding: var(--sp-5); }
+.hook-col h3 {
+  font-family: var(--font-pixel);
+  font-size: clamp(1rem, 2.2vw, 1.4rem);
+  letter-spacing: 0.06em;
+  margin: 0.4rem 0 0.6rem;
+  color: var(--ink);
+}
+.hook-col--weapon h3 { color: var(--accent); }
+.hook-col--lens h3 { color: var(--amber); }
+.hook-col p { font-size: 0.9rem; line-height: 1.7; color: var(--body); margin: 0; }
+.hook-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.hook-list li {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--body);
+  padding-left: 1rem;
+  position: relative;
+}
+.hook-list li::before {
+  content: '\2013';
+  position: absolute;
+  left: 0;
+  color: var(--muted);
+}
+.hook-tag {
+  font-family: var(--font-pixel);
+  font-size: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+.tagline {
+  font-family: var(--font-pixel);
+  font-size: clamp(0.9rem, 2.2vw, 1.3rem);
+  letter-spacing: 0.06em;
+  text-align: center;
+  margin: var(--sp-6) 0 0;
+  color: var(--ink);
+}
+.tagline em { color: var(--accent); font-style: normal; }
+
+/* =========================================================================
+   HOW YOU PLAY — 5 numbered step cards
+   ========================================================================= */
+.loop {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--sp-4);
+  margin-top: var(--sp-6);
+}
+.loop-step .num {
+  font-family: var(--font-press-resolved);
+  font-size: 1.4rem;
+  color: var(--accent);
+  line-height: 1;
+}
+.loop-step h4 {
+  font-family: var(--font-pixel);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  margin: 0.5rem 0 0.4rem;
+  color: var(--ink);
+}
+.loop-step p { font-size: 0.8rem; line-height: 1.6; color: var(--body); margin: 0 0 0.7rem; }
+
+/* =========================================================================
+   FEATURES — 7 mascot-anchored cards
+   ========================================================================= */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-4);
+  margin-top: var(--sp-6);
+}
+
+/* =========================================================================
+   WHY SUPERMEMORY + MEMORY TOGGLE
+   ========================================================================= */
+.why-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  margin-top: var(--sp-6);
+  align-items: start;
+}
+.toggle-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: var(--sp-4);
+  font-family: var(--font-pixel);
+  font-size: 0.52rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--screen-dim);
+}
+.switch {
+  position: relative;
+  width: 50px;
+  height: 24px;
+  border: 2px solid var(--screen-dim);
+  background: #0c0a07;
+  cursor: inherit;
+  flex: none;
+}
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: var(--accent);
+  transition: transform 200ms ease, background 200ms ease;
+}
+.switch.on::after { transform: translateX(26px); background: var(--amber); }
+.switch-label { color: var(--screen-text); }
+.suspect-line { font-size: 0.92rem; line-height: 1.7; color: var(--screen-text); }
+.suspect-line .q { color: var(--amber); }
+.memory-facts { list-style: none; margin: 0.7rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.45rem; }
+.memory-facts li {
+  font-size: 0.78rem;
+  color: var(--screen-dim);
+  border-left: 2px solid var(--amber);
+  padding-left: 0.6rem;
+}
+.memory-facts li.planted { border-left-color: var(--accent); color: var(--screen-text); }
+.blank-state {
+  font-style: italic;
+  color: var(--screen-dim);
+  font-size: 0.85rem;
+  border-left: 2px dashed var(--screen-dim);
+  padding-left: 0.6rem;
+  margin: 0.7rem 0 0;
+}
+.why-paper p { font-size: 0.9rem; line-height: 1.7; color: var(--body); margin: 0 0 0.8rem; }
+.why-paper p.lead { color: var(--ink); }
+.why-paper .hook-list { margin: 0 0 0.8rem; }
+.why-paper p.why-close { margin: 0; padding-top: 0.8rem; border-top: 2px solid var(--hairline); }
+
+/* =========================================================================
+   DIFFICULTY & SCORING
+   ========================================================================= */
+.diff-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-4);
+  margin-top: var(--sp-6);
+}
+.diff-card .pts {
+  font-family: var(--font-press-resolved);
+  font-size: 1.6rem;
+  color: var(--amber);
+  line-height: 1;
+}
+.diff-card .lvl {
+  font-family: var(--font-pixel);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+  border: 2px solid var(--hairline-strong);
+  padding: 0.15rem 0.45rem;
+  display: inline-block;
+}
+.diff-card p { font-size: 0.85rem; line-height: 1.65; color: var(--body); margin: 0.7rem 0 0; }
+.milestone {
+  margin-top: var(--sp-5);
+  padding: var(--sp-4) var(--sp-5);
+  border: 2px dashed var(--amber);
+  background: rgba(201, 138, 46, 0.06);
+  border-radius: 0;
+  font-size: 0.9rem;
+  color: var(--body);
+}
+.milestone b { font-family: var(--font-press-resolved); font-size: 1rem; color: var(--amber); }
+.ranks { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-top: var(--sp-4); }
+.rank {
+  font-family: var(--font-pixel);
+  font-size: 0.52rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--body);
+  border: 2px solid var(--hairline);
+  padding: 0.35rem 0.55rem;
+}
+.rank.last { color: var(--amber); border-color: var(--amber); }
+.rank-sep { color: var(--muted); }
+
+/* =========================================================================
+   FAQ ACCORDION
+   ========================================================================= */
+.faq-section {
+  position: relative;
+}
+.faq-section::before {
+  content: '';
+  position: absolute;
+  right: var(--gutter);
+  bottom: 0;
+  width: 367px;
+  height: 263px;
+  background: url('/assets/gothicvania/environment/props/chuch.png') no-repeat center / contain;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  opacity: 0.08;
+  pointer-events: none;
+  z-index: 0;
+}
+.faq-section > * { position: relative; z-index: 1; }
+.faq-item { border-bottom: 2px solid var(--hairline); }
+.faq-q {
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: var(--sp-4) 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+.faq-q .caret { color: var(--accent); font-family: var(--font-press-resolved); font-size: 1rem; transition: transform 200ms steps(1); }
+.faq-q[aria-expanded='true'] .caret { transform: rotate(45deg); }
+.faq-a { font-size: 0.88rem; line-height: 1.7; color: var(--body); padding: 0 0 var(--sp-5); margin: 0; max-width: 70ch; }
+
+/* =========================================================================
+   FOOTER
+   ========================================================================= */
+.footer {
+  border-top: 3px solid var(--hairline-strong);
+  padding: var(--sp-6) var(--gutter) var(--sp-5);
+  max-width: var(--maxw);
+  margin: 0 auto;
+}
+.footer--props { position: relative; overflow: hidden; }
+.footer-props {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.footer-prop {
+  position: absolute;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  opacity: 0.10;
+}
+.footer-prop--lamp { right: 6%; bottom: 0; height: 120px; width: auto; }
+.footer-prop--wagon { left: 2%; bottom: 8px; height: 64px; width: auto; }
+.footer-prop--crates { right: 22%; bottom: 4px; height: 56px; width: auto; }
+.footer-inner { position: relative; z-index: 1; }
+.footer-inner { display: flex; justify-content: space-between; gap: var(--sp-5); flex-wrap: wrap; }
+.footer h4 { font-family: var(--font-press-resolved); font-size: 1rem; letter-spacing: 0.1em; margin: 0 0 0.4rem; color: var(--ink); }
+.footer h4 .dot { color: var(--accent); }
+.footer p, .footer li { font-size: 0.8rem; color: var(--muted); line-height: 1.7; }
+.footer ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+.footer a { color: var(--body); text-decoration: none; }
+.footer a:hover { color: var(--accent); }
+.footer-credits {
+  position: relative;
+  z-index: 1;
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-4);
+  border-top: 2px solid var(--hairline);
+  font-size: 0.72rem;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* =========================================================================
+   WALKING DETECTIVE — signature element
+   ========================================================================= */
+.detective-ground {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 48px;
+  z-index: 79;
+  pointer-events: none;
+  background:
+    url('/assets/gothicvania/environment/middleground.png') repeat-x bottom left / auto 48px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  opacity: 0.35;
+}
+.detective-layer {
+  position: fixed;
+  left: 0;
+  bottom: 28px;
+  z-index: 80;
+  pointer-events: none;
+  will-change: transform;
+}
+.detective-hop { position: relative; }
+.detective-hop.hop { animation: hop 0.42s steps(1) 1; }
+.detective-flip { transform-origin: bottom center; }
+.detective {
+  width: 48px;
+  height: 48px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+  animation: walk-bob 0.5s steps(2) infinite;
+}
+.detective-sprite {
+  width: 51px;
+  height: 68px;
+  background: url('/assets/gothicvania/characters/woman/walk.png') left top no-repeat;
+  background-size: 328px 68px;
+  animation: walk-bob 0.5s steps(2) infinite, sprite-walk 0.5s steps(6) infinite;
+}
+@keyframes sprite-walk {
+  from { background-position: 0 0; }
+  to { background-position: -328px 0; }
+}
+.detective-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  transform: translateX(-50%);
+  width: 34px;
+  height: 4px;
+  border-radius: 0;
+  background: rgba(42, 32, 21, 0.25);
+}
+@keyframes walk-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes hop {
+  0% { transform: translateY(0); }
+  45% { transform: translateY(-12px); }
+  100% { transform: translateY(0); }
+}
+
+/* =========================================================================
+   PIXEL-BLOCK REVEAL
+   ========================================================================= */
+.reveal { opacity: 0; transform: translateY(14px); }
+.reveal.in-view { animation: pixel-in 0.5s steps(6) forwards; }
+@keyframes pixel-in {
+  0% { opacity: 0; transform: translateY(14px); }
+  100% { opacity: 1; transform: none; }
+}
+
+/* =========================================================================
+   LEADERBOARD
+   ========================================================================= */
+.lb-tabs { display: flex; gap: 0.6rem; margin: var(--sp-5) 0; flex-wrap: wrap; }
+.lb-table { width: 100%; border-collapse: collapse; margin-top: var(--sp-3); }
+.lb-table th, .lb-table td { text-align: left; padding: 0.65rem 0.7rem; border-bottom: 2px solid var(--hairline); font-size: 0.82rem; color: var(--body); }
+.lb-table th { font-family: var(--font-pixel); font-size: 0.5rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+.lb-table .rank-cell { font-family: var(--font-press-resolved); font-size: 0.9rem; color: var(--ink); width: 3rem; }
+.lb-table tr.you { background: var(--accent-soft); }
+.lb-table tr.you td { color: var(--ink); }
+.lb-empty { font-style: italic; color: var(--muted); padding: var(--sp-5) 0; }
+.lb-soon { border: 2px dashed var(--hairline-strong); border-radius: 0; padding: var(--sp-5); margin-top: var(--sp-4); text-align: center; font-size: 0.85rem; color: var(--body); line-height: 1.7; }
+.lb-soon .stamp { margin-bottom: 0.5rem; }
+
+/* =========================================================================
+   RESPONSIVE
+   ========================================================================= */
+@media (max-width: 960px) {
+  .scene { min-height: 260px; }
+  .hook-grid { grid-template-columns: 1fr; }
+  .why-grid { grid-template-columns: 1fr; }
+  .loop { grid-template-columns: repeat(2, 1fr); }
+  .feature-grid { grid-template-columns: repeat(2, 1fr); }
+  .diff-grid { grid-template-columns: 1fr; }
+  .nav-links { display: none; }
+  /* cover-crop no longer keeps the full scene width in frame below this
+     breakpoint, so the fixed-coordinate townfolk overlays would drift off
+     their beam/crates — hide them rather than show a misaligned sprite */
+  .townfolk { display: none; }
+}
+@media (max-width: 560px) {
+  .loop { grid-template-columns: 1fr; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .hero h1 { font-size: clamp(2rem, 12vw, 3.5rem); }
+  .detective-layer { bottom: 20px; }
+  .detective { width: 40px; height: 54px; }
+  .detective-sprite { width: 40px; height: 54px; background-size: 261px 54px; }
+  @keyframes sprite-walk { to { background-position: -261px 0; } }
+  .detective-ground { height: 36px; background-size: auto 36px; }
+}
+
+/* =========================================================================
+   REDUCED MOTION
+   ========================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  .detective { animation: none !important; }
+  .detective-layer { display: none; }
+  .detective-ground { display: none; }
+  .screen-panel::before { animation: none; }
+  .reveal { opacity: 1; transform: none; }
+  .reveal.in-view { animation: none; }
+  .evidence-tag::after { display: none; }
+  .parallax-bg, .parallax-mg { animation: none; }
+  .townfolk, .townfolk-patrol, .townfolk-flip, .townfolk-sprite { animation: none; }
+  /* frozen mid-stride looks wrong; stand hat-man on his idle pose instead */
+  .townfolk-hatman .townfolk-sprite {
+    background: url('/assets/gothicvania/characters/hat-man/idle.png') 0 0 /
+      calc(var(--px) * 156px) calc(var(--px) * 52px) no-repeat;
+  }
+}
