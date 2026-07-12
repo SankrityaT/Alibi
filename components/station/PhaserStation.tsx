@@ -118,6 +118,8 @@ export function PhaserStation({ onEnterRoom, suspects }: PhaserStationProps) {
 
           // Seat each suspect in their room: a portrait at the desk with a
           // nameplate beneath, so every occupied corner shows who is waiting.
+          // Both are clickable (with a hover cue) so you can enter a room by
+          // clicking, not only by walking into it with WASD.
           const seating = assignSuspectsToRooms(suspectsRef.current)
           for (const room of rooms) {
             const suspect = seating[room.id]
@@ -125,10 +127,17 @@ export function PhaserStation({ onEnterRoom, suspects }: PhaserStationProps) {
             const { rect } = room.interior
             const cx = rect.x + rect.width / 2
             const cy = rect.y + rect.height / 2
-            this.add
+            const roomId = room.id
+
+            const portrait = this.add
               .sprite(cx, cy - 6, portraitKey(portraitForSuspect(suspect.suspectId)))
               .setScale(2.4)
               .setDepth(6)
+              .setInteractive({ useHandCursor: true })
+            portrait.on('pointerover', () => portrait.setScale(2.75))
+            portrait.on('pointerout', () => portrait.setScale(2.4))
+            portrait.on('pointerdown', () => onEnterRoomRef.current(roomId))
+
             // Nameplate: place below the portrait, nudged inward at the bottom
             // room so it never clips the canvas edge.
             const plateY = room.id === 'interrogation-2' ? cy - 34 : cy + 30
@@ -142,6 +151,8 @@ export function PhaserStation({ onEnterRoom, suspects }: PhaserStationProps) {
               })
               .setOrigin(0.5)
               .setDepth(7)
+              .setInteractive({ useHandCursor: true })
+              .on('pointerdown', () => onEnterRoomRef.current(roomId))
           }
 
           this.player = this.add.sprite(position.x, position.y, 'detective')
