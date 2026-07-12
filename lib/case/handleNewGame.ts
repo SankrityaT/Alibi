@@ -6,6 +6,7 @@ import { seedCase } from './seed.js'
 import { validateCase } from './validate.js'
 import { setActiveCase } from './store.js'
 import { fallbackCase } from '../../content/cases/fallbackCase.js'
+import { curatedCases } from '../../content/cases/curatedCases.js'
 
 export interface NewGameDeps {
   anthropic: AnthropicClientLike
@@ -54,21 +55,29 @@ export async function handleNewGame(
   }
   const difficulty = record.difficulty
   const useFallback = record.useFallback === true
+  // Live model generation is now opt-in ("generate a fresh case"). The default
+  // path uses a hand-authored, pre-validated curated case for the difficulty so
+  // a case is ready as fast as Supermemory can index it — no slow, wedge-prone
+  // subprocess spawn on the critical path.
+  const wantsGeneration = record.generate === true
 
   const generate = deps.generate ?? generateCase
   const seed = deps.seed ?? seedCase
   const fallback = deps.fallback ?? fallbackCase
+  const curated = curatedCases[difficulty] ?? fallback
 
   let caseFile: CaseFile
   if (useFallback) {
     caseFile = fallback
-  } else {
+  } else if (wantsGeneration) {
     try {
       const generated = await generate({ difficulty }, { anthropic: deps.anthropic })
-      caseFile = validateCase(generated).ok ? generated : fallback
+      caseFile = validateCase(generated).ok ? generated : curated
     } catch {
-      caseFile = fallback
+      caseFile = curated
     }
+  } else {
+    caseFile = curated
   }
 
   try {

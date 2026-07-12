@@ -3,6 +3,7 @@ import { FakeSupermemoryClient } from '../supermemory/fakeClient.js'
 import { FakeAnthropicClient } from '../anthropic/fakeClient.js'
 import type { AnthropicMessageParams } from '../anthropic/types.js'
 import { fallbackCase } from '../../content/cases/fallbackCase.js'
+import { curatedCases } from '../../content/cases/curatedCases.js'
 import { PLANTED_BY_CULPRIT_TAG, suspectContainerTag } from './types.js'
 import { getActiveCase } from './store.js'
 import { handleNewGame } from './handleNewGame.js'
@@ -45,7 +46,20 @@ describe('handleNewGame', () => {
     expect(getActiveCase()).toBe(fallbackCase)
   })
 
-  it('never returns 500: a generate stub that throws still yields 200 via fallback', async () => {
+  it('defaults to the curated case for the difficulty (no model call)', async () => {
+    const supermemory = new FakeSupermemoryClient()
+    const anthropic = new FakeAnthropicClient(noopResponder())
+
+    const result = await handleNewGame({ difficulty: 'easy' }, { supermemory, anthropic })
+
+    expect(result.status).toBe(200)
+    expect(result.body.caseId).toBe(curatedCases.easy.id)
+    expect(getActiveCase()).toBe(curatedCases.easy)
+    // The default path never touches the model.
+    expect(anthropic.calls).toHaveLength(0)
+  })
+
+  it('generate:true with a throwing stub still yields 200 via the curated case', async () => {
     const supermemory = new FakeSupermemoryClient()
     const anthropic = new FakeAnthropicClient(noopResponder())
     const throwingGenerate = async () => {
@@ -53,23 +67,23 @@ describe('handleNewGame', () => {
     }
 
     const result = await handleNewGame(
-      { difficulty: 'hard' },
+      { difficulty: 'hard', generate: true },
       { supermemory, anthropic, generate: throwingGenerate as never }
     )
 
     expect(result.status).toBe(200)
-    expect(result.body.caseId).toBe(fallbackCase.id)
-    expect(getActiveCase()).toBe(fallbackCase)
+    expect(result.body.caseId).toBe(curatedCases.hard.id)
+    expect(getActiveCase()).toBe(curatedCases.hard)
   })
 
-  it('seeds a successfully generated case (not the fallback) and sets it active', async () => {
+  it('generate:true seeds a successfully generated case (not curated) and sets it active', async () => {
     const supermemory = new FakeSupermemoryClient()
     const anthropic = new FakeAnthropicClient(noopResponder())
     const generated = { ...fallbackCase, id: 'gen-xyz', title: 'Generated Case' }
     const okGenerate = async () => generated
 
     const result = await handleNewGame(
-      { difficulty: 'medium' },
+      { difficulty: 'medium', generate: true },
       { supermemory, anthropic, generate: okGenerate as never }
     )
 

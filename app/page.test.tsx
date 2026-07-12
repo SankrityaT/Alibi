@@ -46,7 +46,7 @@ describe('HomePage', () => {
       '/api/new-game',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ difficulty: 'medium' })
+        body: JSON.stringify({ difficulty: 'medium', generate: false })
       })
     )
   })

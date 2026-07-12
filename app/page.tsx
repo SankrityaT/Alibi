@@ -34,6 +34,7 @@ export default function HomePage() {
   const [chosen, setChosen] = useState<Difficulty | null>(null)
   const [beat, setBeat] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [aiGenerate, setAiGenerate] = useState(false)
   const cancelledRef = useRef(false)
 
   useEffect(() => () => { cancelledRef.current = true }, [])
@@ -74,7 +75,7 @@ export default function HomePage() {
       const response = await fetch('/api/new-game', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ difficulty }),
+        body: JSON.stringify({ difficulty, generate: aiGenerate }),
         signal: controller.signal
       })
       if (!response.ok) {
@@ -217,6 +218,29 @@ export default function HomePage() {
           </button>
         ))}
       </div>
+
+      <button
+        type="button"
+        onClick={() => setAiGenerate((v) => !v)}
+        aria-pressed={aiGenerate}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          fontFamily: 'var(--font-mono)',
+          fontSize: '0.72rem',
+          letterSpacing: '0.06em',
+          color: aiGenerate ? 'var(--amber)' : 'var(--paper-faint)',
+          background: 'transparent',
+          border: `1px solid ${aiGenerate ? 'var(--amber)' : 'var(--line-strong)'}`,
+          borderRadius: 999,
+          padding: '0.4rem 0.9rem',
+          cursor: 'pointer'
+        }}
+      >
+        <span aria-hidden="true">{aiGenerate ? '☑' : '☐'}</span>
+        🎲 Generate a brand-new case with AI (slower)
+      </button>
 
       {error && (
         <p role="alert" style={{ color: 'var(--accent-bright)', fontFamily: 'var(--font-mono)', margin: 0 }}>
