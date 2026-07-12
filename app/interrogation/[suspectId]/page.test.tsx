@@ -240,6 +240,30 @@ describe('InterrogationPage', () => {
     expect(screen.queryByTestId('mic-button')).toBeNull()
   })
 
+  it('surfaces a fact in the evidence log after running an investigation verb', async () => {
+    const fetchMock = stubFetchOnce({
+      kind: 'cctv',
+      fact: 'Atrium footage never shows Mara during the theft window.',
+      retrieved: []
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<InterrogationPage params={{ suspectId: 'mara' }} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /^CCTV$/i }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('evidence-log').textContent).toContain(
+        'Atrium footage never shows Mara during the theft window.'
+      )
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/investigate',
+      expect.objectContaining({ method: 'POST' })
+    )
+  })
+
   it('still renders the transcript when TTS fails', async () => {
     // speak() rejecting must not break rendering the spoken line as text.
     speakMock.mockRejectedValue(new Error('TTS unavailable'))

@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react'
 import { DialogueBox } from '../../../components/interrogation/DialogueBox.js'
 import { MemoryTracePanel } from '../../../components/interrogation/MemoryTracePanel.js'
+import { EvidenceActions } from '../../../components/investigation/EvidenceActions.js'
 import { useSpokenLine } from '../../../lib/tts/useSpokenLine.js'
 import { useMicTranscription } from '../../../lib/stt/useMicTranscription.js'
 
@@ -39,6 +40,11 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [memoryEnabled, setMemoryEnabled] = useState(true)
+  // Facts surfaced by the non-dialogue investigation verbs (CCTV/phone/forensics
+  // pulls and evidence presented to the suspect). Pull-verb facts are also
+  // written into the detective's memory server-side for the notebook and rating;
+  // this local log just gives the player immediate feedback.
+  const [evidenceFacts, setEvidenceFacts] = useState<string[]>([])
   // Speaks each new suspect answer aloud in that suspect's voice. Degrades to
   // silence (ttsAvailable=false) when no local Kokoro server is running.
   const { speak, isSpeaking, ttsAvailable } = useSpokenLine()
@@ -215,6 +221,35 @@ export default function InterrogationPage({ params }: InterrogationPageProps) {
                   <DialogueBox text={turn.answer} />
                 </div>
               </div>
+            ))}
+          </div>
+        )}
+
+        <EvidenceActions
+          suspectId={params.suspectId}
+          onFact={(fact) => setEvidenceFacts((prev) => [...prev, fact])}
+        />
+
+        {evidenceFacts.length > 0 && (
+          <div
+            data-testid="evidence-log"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--line)',
+              borderLeft: '3px solid var(--amber)',
+              padding: '0.9rem 1.1rem'
+            }}
+          >
+            <span className="uppercase-label" style={{ color: 'var(--amber)' }}>
+              Evidence Log
+            </span>
+            {evidenceFacts.map((fact, index) => (
+              <p key={index} style={{ margin: 0, fontSize: '0.9rem', color: 'var(--paper-dim)' }}>
+                {fact}
+              </p>
             ))}
           </div>
         )}
