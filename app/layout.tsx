@@ -15,8 +15,9 @@ const plexMono = IBM_Plex_Mono({
 })
 
 export const metadata = {
-  title: 'Alibi',
-  description: 'A memory-driven detective game'
+  title: 'Alibi — a detective game where the suspects actually remember',
+  description:
+    'A local-first AI noir detective game. Interrogate four suspects with real private memory, dig evidence, and catch the one who rewrote someone\'s memory. 100% on your machine.'
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -70,6 +70,44 @@ describe('HttpSupermemoryClient', () => {
     )
   })
 
+  it('normalizes the current /v4/search response shape, which carries text under `chunk`', async () => {
+    const fetchImpl = fakeFetch({
+      results: [{ id: 'mem_1', chunk: 'Saw Ivo near the docks at 22:00' }]
+    })
+    const client = new HttpSupermemoryClient({
+      baseUrl: 'http://localhost:6767',
+      apiKey: 'test-key',
+      fetchImpl
+    })
+
+    const result = await client.search({
+      q: 'Where was Ivo at 22:00?',
+      containerTag: 'suspect-mara',
+      searchMode: 'hybrid'
+    })
+
+    expect(result.results[0].content).toBe('Saw Ivo near the docks at 22:00')
+  })
+
+  it('still normalizes the older `memory` field, in case the API reverts', async () => {
+    const fetchImpl = fakeFetch({
+      results: [{ id: 'mem_1', memory: 'Saw Ivo near the docks at 22:00' }]
+    })
+    const client = new HttpSupermemoryClient({
+      baseUrl: 'http://localhost:6767',
+      apiKey: 'test-key',
+      fetchImpl
+    })
+
+    const result = await client.search({
+      q: 'Where was Ivo at 22:00?',
+      containerTag: 'suspect-mara',
+      searchMode: 'hybrid'
+    })
+
+    expect(result.results[0].content).toBe('Saw Ivo near the docks at 22:00')
+  })
+
   it('fetches a profile via POST /v4/profile', async () => {
     const fetchImpl = fakeFetch({ profile: { trust: 'low' } })
     const client = new HttpSupermemoryClient({

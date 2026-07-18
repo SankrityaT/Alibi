@@ -177,3 +177,596 @@ input {
   border-left: 2px solid var(--accent);
   padding-left: 0.7rem;
 }
+
+/* ============================================================
+   Interrogation scene — over-the-shoulder noir room
+   ============================================================ */
+
+.scene {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #06060a;
+  font-family: var(--font-mono);
+  user-select: none;
+}
+
+/* Back wall: cold plaster, faint vertical light falloff, one-way mirror. */
+.scene__wall {
+  position: absolute;
+  inset: 0 0 30% 0;
+  background:
+    linear-gradient(180deg, #0d0f14 0%, #14100c 60%, #0a0805 100%);
+}
+.scene__mirror {
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 34%;
+  height: 34%;
+  border: 3px solid rgba(0, 0, 0, 0.6);
+  background:
+    linear-gradient(135deg, rgba(120, 140, 170, 0.10) 0%, rgba(20, 26, 36, 0.35) 45%, rgba(120, 140, 170, 0.05) 100%);
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.8), 0 0 0 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Hanging lamp + its cone of light onto the table. */
+.scene__lamp {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  width: 2px;
+  height: 16%;
+  background: #000;
+  transform-origin: top center;
+  animation: lamp-sway 6s ease-in-out infinite;
+}
+.scene__lamp::after {
+  content: '';
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 46px;
+  height: 22px;
+  border-radius: 50% 50% 8px 8px;
+  background: radial-gradient(ellipse at 50% 30%, #4a3618 0%, #120c05 80%);
+  box-shadow: 0 6px 30px rgba(212, 149, 46, 0.5);
+}
+.scene__cone {
+  position: absolute;
+  top: 14%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 70%;
+  background: radial-gradient(ellipse at 50% 0%, rgba(233, 223, 200, 0.16) 0%, rgba(212, 149, 46, 0.06) 30%, transparent 60%);
+  pointer-events: none;
+  animation: lamp-flicker 5s steps(1) infinite;
+}
+
+/* Foreground table: a dark wood band with a spotlit surface. */
+.scene__table {
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  bottom: 14%;
+  height: 30%;
+  background: linear-gradient(180deg, #2a1c0e 0%, #17100a 55%, #0a0705 100%);
+  border-top: 2px solid rgba(212, 149, 46, 0.25);
+  box-shadow: 0 -14px 50px rgba(0, 0, 0, 0.7);
+  transform: perspective(700px) rotateX(42deg);
+  transform-origin: bottom center;
+}
+.scene__tablespot {
+  position: absolute;
+  left: 50%;
+  bottom: 22%;
+  transform: translateX(-50%);
+  width: 46%;
+  height: 16%;
+  background: radial-gradient(ellipse at 50% 50%, rgba(233, 223, 200, 0.14), transparent 70%);
+  pointer-events: none;
+}
+
+/* The suspect, seated across the table, lit by the lamp. */
+.suspect {
+  position: absolute;
+  left: 50%;
+  top: 20%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  animation: idle-sway 7s ease-in-out infinite;
+}
+.suspect--speaking {
+  animation: idle-sway 7s ease-in-out infinite, speaking-pulse 0.5s ease-in-out infinite;
+}
+.suspect__portrait {
+  width: 168px;
+  height: 168px;
+  image-rendering: pixelated;
+  border: 3px solid rgba(212, 149, 46, 0.55);
+  background: #0b0a08;
+  filter: brightness(1.12) contrast(1.05) drop-shadow(0 0 34px rgba(212, 149, 46, 0.35));
+}
+.suspect__plate {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  letter-spacing: 0.06em;
+  color: var(--paper);
+  background: rgba(6, 6, 10, 0.7);
+  border: 1px solid var(--accent);
+  padding: 0.15rem 1rem;
+  text-shadow: 0 0 14px rgba(158, 27, 27, 0.6);
+}
+
+/* The investigator: dark over-the-shoulder silhouette in the foreground. */
+.investigator {
+  position: absolute;
+  left: 50%;
+  bottom: -4%;
+  transform: translateX(-50%);
+  width: 340px;
+  height: 30%;
+  background: radial-gradient(ellipse at 50% 40%, #050505 60%, transparent 72%);
+  filter: blur(1px);
+  pointer-events: none;
+}
+.investigator::before {
+  /* back of the head */
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: #030303;
+}
+
+.scene__grain-scan {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.12) 0, rgba(0, 0, 0, 0.12) 1px, transparent 1px, transparent 3px);
+  mix-blend-mode: multiply;
+}
+.scene__vignette {
+  position: absolute;
+  /* Keep the vignette off the right edge so it stops darkening over the Case
+     Tools dock; a lighter overall shadow keeps the noir mood without hiding UI. */
+  inset: 0 13rem 0 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 130px rgba(0, 0, 0, 0.5);
+}
+
+/* Top HUD */
+.hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+.hud__btn {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.68rem;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  background: rgba(6, 6, 10, 0.6);
+  color: var(--paper);
+  border: 1px solid var(--line-strong);
+  text-decoration: none;
+}
+.hud__btn--mem-on { color: var(--amber); border-color: var(--amber); }
+.hud__btn--mem-off { color: var(--accent-bright); border-color: var(--accent-bright); background: rgba(158,27,27,0.18); }
+.hud__btn:disabled { opacity: 0.4; cursor: default; }
+
+/* Bottom dialogue "subtitle / dossier" box */
+/* Bottom conversation console: transcript (scrolls) + hints + ask bar, stacked
+   in one panel so nothing overlaps and long answers scroll cleanly. */
+.console {
+  position: absolute;
+  left: 50%;
+  bottom: 1.1rem;
+  transform: translateX(-50%);
+  z-index: 20;
+  width: min(820px, 94vw);
+  max-height: 64vh;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  background: linear-gradient(180deg, rgba(12, 10, 8, 0.95), rgba(6, 6, 10, 0.97));
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 0.85rem 0.95rem;
+  box-shadow: 0 22px 64px rgba(0, 0, 0, 0.72);
+}
+.console__transcript {
+  flex: 1 1 auto;
+  min-height: 3.5rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-right: 0.4rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+.console__transcript::-webkit-scrollbar {
+  width: 8px;
+}
+.console__transcript::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 4px;
+}
+.console__turn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.console__empty {
+  margin: 0;
+  color: var(--paper-dim);
+  font-size: 0.9rem;
+}
+.dialogue-scene__who {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.66rem;
+  color: var(--amber);
+  margin-bottom: 0.4rem;
+}
+.dialogue-scene__you {
+  color: var(--paper-dim);
+  font-size: 0.82rem;
+  margin: 0 0 0.6rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px dashed var(--line);
+}
+
+/* Ask bar pinned to the bottom */
+.askbar {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 0.6rem;
+  align-items: stretch;
+  background: rgba(6, 6, 10, 0.6);
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  padding: 0.5rem 0.6rem;
+}
+.askbar input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  padding: 0.4rem 0.5rem;
+  outline: none;
+}
+.askbar button {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  padding: 0 1.1rem;
+  cursor: pointer;
+  background: transparent;
+  color: var(--paper);
+  border: 1px solid var(--accent);
+}
+
+/* Right-edge vertical tabs to open the side panels */
+.sidetabs {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.7rem 0.7rem 0.8rem;
+  background: linear-gradient(200deg, rgba(20, 16, 11, 0.97), rgba(9, 8, 6, 0.95));
+  border: 1px solid var(--line);
+  border-right: none;
+  border-radius: 10px 0 0 10px;
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.6), inset 1px 0 0 rgba(232, 223, 200, 0.05);
+}
+.sidetabs__title {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  font-size: 0.58rem;
+  color: var(--paper-faint);
+  padding: 0.1rem 0.4rem 0.5rem;
+  text-align: center;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 0.35rem;
+}
+.sidetab {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+  padding: 0.6rem 0.95rem 0.6rem 0.7rem;
+  min-width: 172px;
+  cursor: pointer;
+  background: rgba(232, 223, 200, 0.025);
+  color: var(--paper-dim);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.1s;
+}
+.sidetab__icon {
+  flex: 0 0 1.4rem;
+  text-align: center;
+  font-size: 0.95rem;
+  filter: saturate(0.9);
+}
+.sidetab:hover {
+  color: var(--paper);
+  border-color: var(--line-strong);
+  background: rgba(232, 223, 200, 0.06);
+  transform: translateX(-3px);
+}
+.sidetab--active {
+  color: var(--paper);
+  background: rgba(212, 149, 46, 0.16);
+  border-color: var(--amber);
+  box-shadow: inset 0 0 0 1px rgba(212, 149, 46, 0.25);
+}
+.sidetab--active .sidetab__icon {
+  filter: saturate(1.3);
+}
+
+/* Suspect switcher — jump between interrogations without leaving the room */
+.suspect-switch {
+  position: absolute;
+  top: 3.4rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 24;
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(6, 6, 10, 0.85);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.35rem 0.5rem;
+}
+.suspect-switch__btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--paper-dim);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem 0.2rem 0.25rem;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.suspect-switch__btn:hover {
+  color: var(--paper);
+  border-color: var(--line-strong);
+}
+.suspect-switch__btn--active {
+  color: var(--paper);
+  background: rgba(212, 149, 46, 0.16);
+  border-color: var(--amber);
+}
+.suspect-switch__avatar {
+  width: 22px;
+  height: 22px;
+  image-rendering: pixelated;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  background: #0b0a08;
+}
+.sidetab--danger { color: var(--accent-bright); }
+.sidetab--danger:hover {
+  color: var(--accent-bright);
+  border-color: var(--accent);
+  background: rgba(158, 27, 27, 0.14);
+}
+.sidetab--danger.sidetab--active {
+  color: var(--accent-bright);
+  background: rgba(158, 27, 27, 0.18);
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px rgba(158, 27, 27, 0.3);
+}
+
+/* Slide-in manila panel */
+.slidepanel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  width: min(440px, 94vw);
+  background: linear-gradient(180deg, #17130d, #0b0a08);
+  border-left: 3px solid var(--amber);
+  box-shadow: -20px 0 60px rgba(0, 0, 0, 0.7);
+  transform: translateX(100%);
+  transition: transform 260ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  overflow-y: auto;
+  padding: 3.2rem 1.2rem 1.5rem;
+}
+.slidepanel--open { transform: translateX(0); }
+.slidepanel__close {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.9rem;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--paper-dim);
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+}
+.slidepanel__title {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  letter-spacing: 0.05em;
+  color: var(--paper);
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 0.4rem;
+  margin: 0 0 1rem;
+}
+
+@keyframes idle-sway {
+  0%, 100% { transform: translateX(-50%) translateY(0) rotate(0deg); }
+  50% { transform: translateX(-50%) translateY(-4px) rotate(-0.4deg); }
+}
+@keyframes speaking-pulse {
+  0%, 100% { filter: none; }
+  50% { filter: brightness(1.08); }
+}
+@keyframes lamp-sway {
+  0%, 100% { transform: rotate(-0.6deg); }
+  50% { transform: rotate(0.6deg); }
+}
+@keyframes lamp-flicker {
+  0%, 96%, 100% { opacity: 1; }
+  97% { opacity: 0.7; }
+  98% { opacity: 1; }
+  99% { opacity: 0.85; }
+}
+
+/* Small speaker avatar chips in the dialogue (officer for YOU, suspect for them) */
+.dlg-avatar {
+  width: 22px;
+  height: 22px;
+  image-rendering: pixelated;
+  vertical-align: middle;
+  margin-right: 7px;
+  border: 1px solid var(--line-strong);
+  background: #0b0a08;
+}
+.dialogue-box-static {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--paper-dim);
+  white-space: pre-wrap;
+}
+
+.thinking-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 1.75em;
+  font-family: var(--font-mono);
+}
+.thinking-indicator__label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--paper-faint);
+}
+.thinking-indicator__dots {
+  display: inline-flex;
+  gap: 0.3rem;
+}
+.thinking-indicator__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--amber);
+  opacity: 0.25;
+  animation: thinking-pulse 1.1s ease-in-out infinite;
+}
+.thinking-indicator__dot:nth-child(2) { animation-delay: 0.15s; }
+.thinking-indicator__dot:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes thinking-pulse {
+  0%, 80%, 100% { opacity: 0.25; }
+  40% { opacity: 1; }
+}
+
+/* Loading screen (case assembly) */
+.blink-cursor {
+  color: var(--accent-bright);
+  animation: blink-cursor 1s steps(1) infinite;
+}
+
+@keyframes sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes slide {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(360%);
+  }
+}
+
+/* AI question hints (interrogation) */
+.console__hints {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  border-top: 1px solid var(--line);
+  padding-top: 0.55rem;
+}
+.hintbar__label {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.62rem;
+  color: var(--amber);
+  opacity: 0.85;
+}
+.hintbar__loading {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--paper-faint);
+}
+.hint-chip {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--paper);
+  background: rgba(212, 149, 46, 0.1);
+  border: 1px solid rgba(212, 149, 46, 0.5);
+  border-radius: 999px;
+  padding: 0.28rem 0.7rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.hint-chip:hover:not(:disabled) {
+  background: rgba(212, 149, 46, 0.2);
+  border-color: var(--amber);
+}
+.hint-chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

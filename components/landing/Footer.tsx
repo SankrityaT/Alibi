@@ -1,5 +1,9 @@
 //created by kinjal
-export function Footer() {
+export interface FooterProps {
+  onPlayTheCase: () => void
+}
+
+export function Footer({ onPlayTheCase }: FooterProps) {
   return (
     <footer className="footer footer--props" id="footer">
       <div className="footer-props" aria-hidden="true">
@@ -17,10 +21,9 @@ export function Footer() {
         </div>
         <div>
           <ul>
-            <li><a href="/station">Play the case</a></li>
+            <li><button type="button" className="footer-link-btn" onClick={onPlayTheCase}>Play the case</button></li>
             <li><a href="/leaderboard">Leaderboard</a></li>
             <li><a href="#get-started">Get started</a></li>
-            <li><a href="#faq">FAQ</a></li>
           </ul>
         </div>
         <div>

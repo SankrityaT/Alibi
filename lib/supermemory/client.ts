@@ -26,14 +26,25 @@ export class HttpSupermemoryClient implements SupermemoryClient {
   }
 
   private async post<T>(path: string, body: unknown): Promise<T> {
-    const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`
-      },
-      body: JSON.stringify(body)
-    })
+    // Bound every call so a dead/restarting Supermemory can't hang a request
+    // forever (fetch has no default timeout). 25s comfortably covers a healthy
+    // write/search; past that we treat the server as unresponsive.
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 25_000)
+    let response: Response
+    try {
+      response = await this.fetchImpl(`${this.baseUrl}${path}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal
+      })
+    } finally {
+      clearTimeout(timer)
+    }
 
     if (!response.ok) {
       const text = await response.text()
@@ -48,7 +59,28 @@ export class HttpSupermemoryClient implements SupermemoryClient {
   }
 
   async search(params: SearchParams): Promise<SearchResult> {
-    return this.post<SearchResult>('/v4/search', params)
+    const raw = await this.post<{
+      results?: Array<{
+        id: string
+        chunk?: string
+        memory?: string
+        content?: string
+        metadata?: Record<string, unknown>
+      }>
+    }>('/v4/search', params)
+    // Supermemory's /v4/search has returned each hit's text under different
+    // field names across versions — currently `chunk`, previously `memory` —
+    // never `content`. Casting the raw payload straight to SearchResult left
+    // every item's `content` undefined, so suspects retrieved memories by
+    // count but received blank text — ungrounded answers. Normalize to
+    // `content` here, preferring whichever field is actually populated, so
+    // every caller (respond, verbs, notebook) reads real memory text.
+    const results = (raw.results ?? []).map((item) => ({
+      id: item.id,
+      content: item.chunk ?? item.memory ?? item.content ?? '',
+      metadata: item.metadata
+    }))
+    return { results }
   }
 
   async getProfile(params: ProfileParams): Promise<ProfileResult> {

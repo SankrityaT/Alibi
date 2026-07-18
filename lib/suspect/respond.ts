@@ -8,6 +8,7 @@ export interface CharacterSheet {
   voice: string
   motive: string
   hiddenFacts: string
+  ttsVoice?: string
 }
 
 export interface RetrievedMemory {
@@ -47,7 +48,13 @@ export async function respondAsSuspect(
   const searchResult = await deps.supermemory.search({
     q: question,
     containerTag: characterSheet.containerTag,
-    searchMode: 'hybrid'
+    searchMode: 'hybrid',
+    // Low threshold + capped limit: always surface the suspect's most relevant
+    // memories even for broad questions, without flooding the prompt. Above the
+    // default cutoff (~0.55) a generic question returns nothing and the suspect
+    // wrongly claims amnesia.
+    threshold: 0.3,
+    limit: 6
   })
 
   const retrievedMemories: RetrievedMemory[] = searchResult.results.map((item) => ({

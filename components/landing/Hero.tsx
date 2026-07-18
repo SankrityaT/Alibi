@@ -2,7 +2,11 @@
 import { Reveal } from './Reveal.js'
 import { Nav } from './Nav.js'
 
-export function Hero() {
+export interface HeroProps {
+  onPlayTheCase: () => void
+}
+
+export function Hero({ onPlayTheCase }: HeroProps) {
   return (
     <div className="hero-wrap">
       <Nav />
@@ -31,9 +35,9 @@ export function Hero() {
       </Reveal>
 
       <Reveal delay={160} className="hero-ctas">
-        <a href="/station" className="btn btn--primary">
+        <button type="button" onClick={onPlayTheCase} className="btn btn--primary">
           Play the case
-        </a>
+        </button>
       </Reveal>
     </header>
     </div>

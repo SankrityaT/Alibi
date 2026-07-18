@@ -767,7 +767,7 @@ body:has(.alibi-landing) .vignette-overlay {
    ========================================================================= */
 .loop {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--sp-4);
   margin-top: var(--sp-6);
 }
@@ -984,6 +984,17 @@ body:has(.alibi-landing) .vignette-overlay {
 .footer ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
 .footer a { color: var(--body); text-decoration: none; }
 .footer a:hover { color: var(--accent); }
+.footer-link-btn {
+  font: inherit;
+  color: var(--body);
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  text-decoration: none;
+  cursor: inherit;
+}
+.footer-link-btn:hover { color: var(--accent); }
 .footer-credits {
   position: relative;
   z-index: 1;

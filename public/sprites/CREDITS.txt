@@ -1,3 +1,4 @@
-Sprites in this folder are from Kenney's "Tiny Dungeon" asset pack
-(https://kenney.nl/assets/tiny-dungeon), licensed CC0 1.0 Universal
-(public domain, no attribution required). Credited here voluntarily.
+Sprites here are from Kenney's asset packs (https://kenney.nl), all CC0 1.0
+Universal (public domain, no attribution required — credited voluntarily):
+  - Tiny Dungeon  (character portraits: the officer/investigator + suspects)
+  - Roguelike/RPG, Roguelike Modern City  (tiles / scene dressing)

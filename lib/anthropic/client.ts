@@ -8,17 +8,43 @@ export class ClaudeClient implements AnthropicClientLike {
   async createMessage(params: AnthropicMessageParams): Promise<string> {
     let resultText: string | null = null
 
-    for await (const message of query({
-      prompt: params.userMessage,
-      options: { systemPrompt: params.system }
-    })) {
-      if (message.type === 'result' && 'result' in message) {
-        resultText = message.result
+    // Abort a wedged subprocess after timeoutMs so a hung generation can never
+    // hang the whole request; the caller (handleNewGame) then uses the fallback.
+    const controller = new AbortController()
+    const timeoutMs = params.timeoutMs ?? 90_000
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+    try {
+      for await (const message of query({
+        prompt: params.userMessage,
+        options: {
+          systemPrompt: params.system,
+          abortController: controller,
+          // Make this a lean, single-shot completion. By default query() builds
+          // a full coding agent — loading tool schemas, allowing multi-turn tool
+          // loops, and (via settingSources) the user's CLAUDE.md + every
+          // configured MCP server — none of which a one-off text/JSON
+          // generation needs. Stripping them removes tens of seconds of
+          // per-call setup in a warm session; the ~12s subprocess spawn (SDK
+          // issue #34) is the floor that remains.
+          allowedTools: [],
+          mcpServers: {},
+          settingSources: [],
+          maxTurns: 1,
+          includePartialMessages: false,
+          ...(params.model ? { model: params.model } : {})
+        }
+      })) {
+        if (message.type === 'result' && 'result' in message) {
+          resultText = message.result
+        }
       }
+    } finally {
+      clearTimeout(timer)
     }
 
     if (resultText === null) {
-      throw new Error('Claude Agent SDK query produced no result message')
+      throw new Error('Claude Agent SDK query produced no result message (timed out or aborted)')
     }
     return resultText
   }

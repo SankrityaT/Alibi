@@ -4,6 +4,8 @@ import { FakeAnthropicClient } from '../anthropic/fakeClient.js'
 import { seedGroundTruth } from '../suspect/memory.js'
 import { handleInterrogateRequest } from './handleInterrogateRequest.js'
 import type { CharacterSheet } from '../suspect/respond.js'
+import { getActiveRegistry } from '../case/store.js'
+import { fallbackCase } from '../../content/cases/fallbackCase.js'
 
 const mara: CharacterSheet = {
   suspectId: 'mara',
@@ -59,5 +61,37 @@ describe('handleInterrogateRequest', () => {
 
     expect(result.status).toBe(400)
     expect(result.body.error).toBe('Missing or invalid "question"')
+  })
+})
+
+// The interrogate route sources its suspect registry from getActiveRegistry()
+// (the active-case store). Before any game is started that derives from the
+// fallback case, so a fallback suspect id resolves and an unknown id 404s.
+describe('handleInterrogateRequest with getActiveRegistry() (live registry)', () => {
+  it('resolves 200 for a suspect present in the active registry', async () => {
+    const supermemory = new FakeSupermemoryClient()
+    const anthropic = new FakeAnthropicClient(echoResponder())
+    const suspects = getActiveRegistry()
+    const seededId = fallbackCase.suspects[0].suspectId
+
+    const result = await handleInterrogateRequest(
+      { suspectId: seededId, question: 'Where were you that night?' },
+      { supermemory, anthropic, suspects }
+    )
+
+    expect(result.status).toBe(200)
+  })
+
+  it('returns 404 for a suspect id not in the active registry', async () => {
+    const supermemory = new FakeSupermemoryClient()
+    const anthropic = new FakeAnthropicClient(echoResponder())
+    const suspects = getActiveRegistry()
+
+    const result = await handleInterrogateRequest(
+      { suspectId: 'does-not-exist', question: 'Where were you?' },
+      { supermemory, anthropic, suspects }
+    )
+
+    expect(result.status).toBe(404)
   })
 })
